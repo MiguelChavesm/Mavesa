@@ -28,7 +28,7 @@ class SerialInterface:
     def __init__(self, root):
         self.root = root
         self.root.title("MONTRA")
-        root.iconbitmap('Icons/montra.ico')
+        #root.iconbitmap('Icons/montra.ico')
         # Define el ancho y alto de la ventana
 
         self.direcciones_mac_permitidas = ["4C-44-5B-95-52-85", "BC-F1-71-F3-5F-60", "30-05-05-B8-BB-35", "30-05-05-B8-B4-69"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
@@ -52,7 +52,7 @@ class SerialInterface:
 
         self.notebook.add(self.medicion_tab, text="Medición", state="normal")  # Inicialmente deshabilitada
         self.notebook.add(self.configuracion_tab, text="Configuración", state="normal")  # Inicialmente deshabilitada
-        self.imagenes()
+        #self.imagenes()
         self.create_medicion_tab()
         self.create_configuracion_tab()
         #self.guardar_configuracion()

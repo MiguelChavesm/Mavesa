@@ -21,24 +21,28 @@ class ProcesadorArchivos:
         self.medicion_tab = ttk.Frame(self.notebook)
         self.configuracion_tab = ttk.Frame(self.notebook)
 
-        self.notebook.add(self.medicion_tab, text="Respuesta y DB", state="normal")  # Inicialmente deshabilitada
+        self.notebook.add(self.medicion_tab, text="WebService", state="normal")  # Inicialmente deshabilitada
         self.notebook.add(self.configuracion_tab, text="Configuración", state="normal")  # Inicialmente deshabilitada
         
         self.create_medicion_tab()
         self.create_configuracion_tab()
         
+        
+        
         # URL del servicio de acceso a tokens
         self.token_url = "https://mingle-sso.inforcloudsuite.com:443/NUGH6DGWYB5E8AMU_TST/as/token.oauth2"
 
         # Información de autenticación
+        self.api_url = "https://mingle-ionapi.inforcloudsuite.com/NUGH6DGWYB5E8AMU_TST/WM/wmwebservice_rest/NUGH6DGWYB5E8AMU_TST_ENTERPRISE/packs"
         self.client_id = "NUGH6DGWYB5E8AMU_TST~_tOirRI-jy9pzu4Xun2ESJvNqMVTHg_jJntMDzFtgV0"
         self.client_secret = "ptQu3maUMRAlScq_xe2-mZLsJkPtT_fkrDWTOGEVJreUHyPqavPhncXtX1cRCVE8uNSQei4CQO0xqssZvwgU9A"
         self.username = "NUGH6DGWYB5E8AMU_TST#ktzJTSlcIfY9X5sH9tUacghKkC7n7TLZXCgx51jQyHjPXJvxzarlQsufPAusg4XgDa6GbLvXKcKvjwN7ljHBlg"
         self.password = "jxy5rCtcwN_jf0b8R1Cbe2FxkBQ-paCjmDwspfGqu7E1Mwj0SsDneZKBF41g4alWZ-lTUWCRl0p7M8tJ0yVknA"
 
         # Ruta de la carpeta donde se encuentran los archivos txt
-        self.carpeta_archivos = "Data_mavesa/"
-
+        #self.carpeta_archivos = "Data_mavesa/"
+        self.carpeta_archivos="C:/Users/montr/Downloads/Prueba Mavesa/"
+        
         # Ruta de la carpeta "procesados"
         self.carpeta_procesados = "Procesados/"
 
@@ -57,6 +61,49 @@ class ProcesadorArchivos:
         self.boton_detener.pack(pady=10)
 
     def create_configuracion_tab(self):
+        
+        self.token_url=tk.StringVar()
+        self.api_url = tk.StringVar()
+        self.client_id = tk.StringVar()
+        self.client_secret = tk.StringVar()
+        self.username = tk.StringVar()
+        self.password = tk.StringVar()
+        self.carpeta_archivos = tk.StringVar()
+        self.carpeta_procesados = tk.StringVar()
+
+        
+        ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, column=1, pady=5, sticky="w")
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.api_url, width=27)
+        url_entry.grid(row=1, column=2, pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="Client ID:").grid(row=2, column=1, pady=5, sticky="w")
+        client_id_entry = ttk.Entry(self.configuracion_tab, textvariable=self.client_id)
+        client_id_entry.grid(row=2, column=2, pady=5, sticky="w")
+
+        ttk.Label(self.configuracion_tab, text="Client Secret:").grid(row=3, column=1, pady=5, sticky="w")
+        client_secret_entry = ttk.Entry(self.configuracion_tab, textvariable=self.client_secret)
+        client_secret_entry.grid(row=3, column=2, pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=4, column=1, pady=5, sticky="w")
+        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username)
+        username_entry.grid(row=4, column=2, pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=5, column=1,  pady=5, sticky="w")
+        password_entry = ttk.Entry(self.configuracion_tab, textvariable=self.password)
+        password_entry.grid(row=5, column=2, pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="URL del token:").grid(row=6, column=1, pady=5, sticky="w")
+        token_url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.token_url, width=27)
+        token_url_entry.grid(row=6, column=2, pady=5, sticky="w")
+
+        ttk.Label(self.configuracion_tab, text="PROCESAMIENTO DE DATOS",font=("Helvetica", 13)).grid(row=7, column=1, columnspan=3, pady=(20,5), sticky="w")
+        ttk.Label(self.configuracion_tab, text="Carpeta Origen:").grid(row=8, column=1, pady=5, sticky="w")
+        
+        carpeta_origen_entry = ttk.Entry(self.configuracion_tab, textvariable=self.carpeta_archivos, width=40)
+        carpeta_origen_entry.grid(row=8, column=2, columnspan=2, pady=5, sticky="w")
+        
+        
+        
         ttk.Label(self.configuracion_tab, text="Hola")
 
     def enviar_data(self, data):
@@ -84,9 +131,8 @@ class ProcesadorArchivos:
                     "Content-Type": "application/json"
                 }
 
-                api_url = "https://mingle-ionapi.inforcloudsuite.com/NUGH6DGWYB5E8AMU_TST/WM/wmwebservice_rest/NUGH6DGWYB5E8AMU_TST_ENTERPRISE/packs"
 
-                response = requests.post(api_url, json=data, headers=headers)
+                response = requests.post(self.api_url, json=data, headers=headers)
 
                 if response.status_code == 200:
                     print("Solicitud exitosa:", response.json())
@@ -146,7 +192,7 @@ class ProcesadorArchivos:
                     }
                     print(data)
                     self.enviar_data(data)
-                elif Packtype == "Caja-UOM1":
+                elif Packtype == "Caja-UOM1" or Packtype == "Caja2-UOM1" or Packtype == "Caja3-UOM1":
                     data = {
                         "packkey": f"{SKU}_{Cantidad}",
                         "packdescr": Descripcion,
@@ -164,6 +210,7 @@ class ProcesadorArchivos:
                     }
                     print(data)
                     self.enviar_data(data)
+
 
                 # Mueve el archivo procesado a la carpeta "procesados"
                 nuevo_nombre = os.path.join(self.carpeta_procesados, os.path.basename(archivo))
