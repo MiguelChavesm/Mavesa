@@ -5,14 +5,13 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox
 from tkinter import *
-import tkinter as tk
-from tkinter import messagebox
 from threading import Thread
-import time
+import base64
+import xml.etree.ElementTree as ET
+
 
 class ProcesadorArchivos:
-    def __init__(self,root):
-            
+    def __init__(self, root):
         self.root = root
         self.root.title("MONTRA")
         
@@ -27,13 +26,11 @@ class ProcesadorArchivos:
         self.create_medicion_tab()
         self.create_configuracion_tab()
         
-        
-        
-        # URL del servicio de acceso a tokens
         self.token_url = "https://mingle-sso.inforcloudsuite.com:443/NUGH6DGWYB5E8AMU_TST/as/token.oauth2"
-
         # Información de autenticación
         self.api_url = "https://mingle-ionapi.inforcloudsuite.com/NUGH6DGWYB5E8AMU_TST/WM/wmwebservice_rest/NUGH6DGWYB5E8AMU_TST_ENTERPRISE/packs"
+        self.url_api_image = "https://mingle-ionapi.inforcloudsuite.com/NUGH6DGWYB5E8AMU_TST/IDM/api/bc?$checkout=true&$language=en"
+        
         self.client_id = "NUGH6DGWYB5E8AMU_TST~_tOirRI-jy9pzu4Xun2ESJvNqMVTHg_jJntMDzFtgV0"
         self.client_secret = "ptQu3maUMRAlScq_xe2-mZLsJkPtT_fkrDWTOGEVJreUHyPqavPhncXtX1cRCVE8uNSQei4CQO0xqssZvwgU9A"
         self.username = "NUGH6DGWYB5E8AMU_TST#ktzJTSlcIfY9X5sH9tUacghKkC7n7TLZXCgx51jQyHjPXJvxzarlQsufPAusg4XgDa6GbLvXKcKvjwN7ljHBlg"
@@ -41,15 +38,15 @@ class ProcesadorArchivos:
 
         # Ruta de la carpeta donde se encuentran los archivos txt
         #self.carpeta_archivos = "Data_mavesa/"
-        self.carpeta_archivos="C:/Users/montr/Downloads/Prueba Mavesa/"
-        
+        self.carpeta_archivos="C:/Users/montr/Downloads/PruebaMavesa/"
+        self.carpeta_imagenes="C:/Users/montr/Downloads/ImagesMavesa/"
         # Ruta de la carpeta "procesados"
-        self.carpeta_procesados = "Procesados/"
+        self.carpeta_procesados_data = "Procesados/Data"
+        self.carpeta_procesados_img = "Procesados/Images"
 
+        self.carpeta_procesados
         # Variable para controlar la ejecución del programa
         self.ejecutar = True
-
-
 
     def create_medicion_tab(self):
         # Botón "Iniciar"
@@ -106,9 +103,8 @@ class ProcesadorArchivos:
         
         ttk.Label(self.configuracion_tab, text="Hola")
 
-    def enviar_data(self, data):
-        # Cuerpo del JSON
-
+    # Ajustes en el método enviar_data
+    def enviar_data(self, data, url):
         # Obtener token de acceso
         token_response = requests.post(
             self.token_url,
@@ -122,20 +118,27 @@ class ProcesadorArchivos:
 
         if token_response.status_code == 200:
             access_token = token_response.json().get("access_token")
-            # print(access_token)
 
-            # Si se obtiene el token, realizar la solicitud POST con el cuerpo JSON
             if access_token:
                 headers = {
                     "Authorization": f"Bearer {access_token}",
                     "Content-Type": "application/json"
                 }
 
-
-                response = requests.post(self.api_url, json=data, headers=headers)
+                response = requests.post(url, json=data, headers=headers)
 
                 if response.status_code == 200:
-                    print("Solicitud exitosa:", response.json())
+                    try:
+                        json_response = response.json()
+                        print("Solicitud exitosa (JSON):", json_response)
+                    except requests.exceptions.JSONDecodeError:
+                        try:
+                            # Intenta analizar la respuesta como XML
+                            xml_response = ET.fromstring(response.text)
+                            print("Solicitud exitosa (XML):", ET.dump(xml_response))
+                        except ET.ParseError:
+                            print("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", response.text)
+
                 else:
                     print("Error en la solicitud:", response.text)
             else:
@@ -191,7 +194,7 @@ class ProcesadorArchivos:
                         "ext_udf_str2": Tipodepaquete
                     }
                     print(data)
-                    self.enviar_data(data)
+                    self.enviar_data(data, self.api_url)
                 elif Packtype == "Caja-UOM1" or Packtype == "Caja2-UOM1" or Packtype == "Caja3-UOM1":
                     data = {
                         "packkey": f"{SKU}_{Cantidad}",
@@ -209,11 +212,15 @@ class ProcesadorArchivos:
                         "ext_udf_str2": Tipodepaquete
                     }
                     print(data)
-                    self.enviar_data(data)
-
-
+                    self.enviar_data(data, self.api_url)
+            
+            
+                carpeta_procesados_data = os.path.join(self.carpeta_procesados_data)
+                if not os.path.exists(carpeta_procesados_data):
+                    os.makedirs(carpeta_procesados_data)
+                
                 # Mueve el archivo procesado a la carpeta "procesados"
-                nuevo_nombre = os.path.join(self.carpeta_procesados, os.path.basename(archivo))
+                nuevo_nombre = os.path.join(self.carpeta_procesados_data, os.path.basename(archivo))
                 # Cerrar el archivo antes de intentar moverlo
                 f.close()
                 os.rename(archivo, nuevo_nombre)
@@ -223,20 +230,80 @@ class ProcesadorArchivos:
         except Exception as e:
             print(f"Error al procesar el archivo {archivo}: {str(e)}")
 
-    def obtener_archivo_mas_antiguo(self, carpeta):
-        archivos = [f for f in os.listdir(carpeta) if f.endswith(".txt")]
+    def procesar_imagen(self, ruta_imagen):
+        try:
+            with open(ruta_imagen, "rb") as img_file:
+                # Leer la imagen en bytes
+                img_bytes = img_file.read()
+
+                # Codificar la imagen en base64
+                img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+
+                # Construir el JSON de la imagen
+                json_imagen = {
+                    "item": {
+                        "attrs": {
+                            "attr": [
+                                {"name": "storer", "value": "LLP"},
+                                {"name": "sku", "value": os.path.basename(ruta_imagen).split('_')[0]},  # Obtener el "CODIGO" del nombre de la imagen
+                                {"name": "uom", "value": os.path.basename(ruta_imagen).split('_')[1].split('.')[0]}  # Obtener el "UN" del nombre de la imagen
+                            ]
+                        },
+                        "resrs": {
+                            "res": [
+                                {
+                                    "filename": os.path.basename(ruta_imagen),
+                                    "base64": img_base64
+                                }
+                            ]
+                        },
+                        "acl": {
+                            "name": "Public"
+                        },
+                        "entityName": "SCE_Product_Image"
+                    }
+                }
+                print(json_imagen)
+                # Puedes imprimir el JSON antes de enviarlo
+                # Enviar el JSON al servicio de imágenes
+                self.enviar_data(json_imagen, self.url_api_image)
+                
+                carpeta_procesados_img = os.path.join(self.carpeta_procesados_img)
+                if not os.path.exists(carpeta_procesados_img):
+                    os.makedirs(carpeta_procesados_img)
+                
+                nuevo_nombre = os.path.join(carpeta_procesados_img, os.path.basename(ruta_imagen))
+                # Cerrar el archivo antes de intentar moverlo
+                img_file.close()
+                
+                os.rename(ruta_imagen, nuevo_nombre)
+
+                print(f"Imagen procesada: {ruta_imagen}")
+
+        except Exception as e:
+            print(f"Error al procesar la imagen {ruta_imagen}: {str(e)}")
+
+    def obtener_archivo_mas_antiguo(self, carpeta, extension=None):
+        archivos = [f for f in os.listdir(carpeta) if f.endswith(extension)] if extension else os.listdir(carpeta)
         if not archivos:
             return None
-        archivos.sort(key=lambda x: datetime.strptime(x.split("_")[1].replace('.txt', ''), "%Y%m%d%H%M%S"))
-        return os.path.join(carpeta, archivos[0])
-
+        if extension== ".jpg":
+            archivos.sort(key=lambda x: datetime.strptime(x.split("_")[2].replace('.jpg', ''), "%Y%m%d%H%M%S"))
+            return os.path.join(carpeta, archivos[0])
+        elif extension== ".txt":
+            archivos.sort(key=lambda x: datetime.strptime(x.split("_")[1].replace('.txt', ''), "%Y%m%d%H%M%S"))
+            return os.path.join(carpeta, archivos[0])
+    # Ajustes en el método procesar_archivos_continuamente
     def procesar_archivos_continuamente(self):
         while self.ejecutar:
-            archivo = self.obtener_archivo_mas_antiguo(self.carpeta_archivos)
-            if archivo:
-                self.procesar_archivo(archivo)
+            archivo_txt = self.obtener_archivo_mas_antiguo(self.carpeta_archivos, ".txt")
+            archivo_img = self.obtener_archivo_mas_antiguo(self.carpeta_imagenes, ".jpg")  # Ajustar la extensión
 
-
+            if archivo_txt:
+                self.procesar_archivo(archivo_txt)
+            elif archivo_img:
+                self.procesar_imagen(archivo_img)
+    
     def iniciar_proceso(self):
         # Inicia un hilo para ejecutar el procesamiento en segundo plano
         self.ejecutar=True
@@ -254,15 +321,8 @@ class ProcesadorArchivos:
         # Ejecutar la interfaz gráfica
         root.mainloop()
 
-
 if __name__ == "__main__":
     root = tk.Tk()
     root.resizable(False,False)
     app = ProcesadorArchivos(root)
     app.ejecutar_interfaz()
-#comentario prueba
-"""
-# Crear una instancia de la clase y ejecutar la interfaz
-procesador = ProcesadorArchivos()
-procesador.ejecutar_interfaz()
-"""
