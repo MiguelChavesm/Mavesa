@@ -8,6 +8,7 @@ from tkinter import *
 from threading import Thread
 import base64
 import xml.etree.ElementTree as ET
+import time
 
 
 class ProcesadorArchivos:
@@ -38,11 +39,14 @@ class ProcesadorArchivos:
 
         # Ruta de la carpeta donde se encuentran los archivos txt
         #self.carpeta_archivos = "Data_mavesa/"
-        self.carpeta_archivos="C:/Users/montr/Downloads/PruebaMavesa/"
-        self.carpeta_imagenes="C:/Users/montr/Downloads/ImagesMavesa/"
+        self.carpeta_archivos="C:/CubiScan/QbitDB/Data/Texto"
+        self.carpeta_imagenes="C:/CubiScan/QbitDB/Data/Images"
         # Ruta de la carpeta "procesados"
         self.carpeta_procesados_data = "Procesados/Data"
+        self.carpeta_procesados_data_e = "Procesados/Data/Errores/"
+                
         self.carpeta_procesados_img = "Procesados/Images"
+        self.carpeta_procesados_img_e = "Procesados/Images/Errores/"
 
         self.carpeta_procesados
         # Variable para controlar la ejecución del programa
@@ -130,27 +134,32 @@ class ProcesadorArchivos:
                 if response.status_code == 200:
                     try:
                         json_response = response.json()
-                        print("Solicitud exitosa (JSON):", json_response)
+                        #print("Solicitud exitosa (JSON):", json_response)
                     except requests.exceptions.JSONDecodeError:
                         try:
                             # Intenta analizar la respuesta como XML
                             xml_response = ET.fromstring(response.text)
-                            print("Solicitud exitosa (XML):", ET.dump(xml_response))
+                            #print("Solicitud exitosa (XML):", ET.dump(xml_response))
                         except ET.ParseError:
-                            print("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", response.text)
+                            messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", response.text)
 
                 else:
-                    print("Error en la solicitud:", response.text)
+                    messagebox.showerror("Error en la solicitud:", response.text)
             else:
-                print("No se pudo obtener el token de acceso.")
+                messagebox.showerror(f"No se pudo obtener el token de acceso")
         else:
-            print("Error al obtener el token de acceso:", token_response.text)
+            messagebox.showerror(f"Error al obtener el token de acceso:", token_response.text)
 
     def procesar_archivo(self, archivo):
         try:
+            
             with open(archivo, "r") as f:
                 line = f.readline().strip()
                 datos = line.split("|")
+
+                if len(datos) != 9:
+                    raise ValueError("La estructura del archivo no es válida")
+
 
                 SKU, Packtype, Tipodepaquete, Cantidad, Largo, Ancho, Alto, Peso, Descripcion = datos
 
@@ -160,17 +169,6 @@ class ProcesadorArchivos:
                 Alto = float(Alto)
                 Peso = float(Peso)
 
-
-                # Puedes imprimir los datos procesados
-                print(f"SKU: {SKU}")
-                print(f"Packtype: {Packtype}")
-                print(f"Tipodepaquete: {Tipodepaquete}")
-                print(f"Cantidad: {Cantidad}")
-                print(f"Largo: {Largo}")
-                print(f"Ancho: {Ancho}")
-                print(f"Alto: {Alto}")
-                print(f"Peso: {Peso}")
-                print(f"Descripcion: {Descripcion}")
 
                 if Packtype == "Unidad-UOM3":
                     data = {
@@ -193,7 +191,7 @@ class ProcesadorArchivos:
                         "ext_udf_str1": SKU,
                         "ext_udf_str2": Tipodepaquete
                     }
-                    print(data)
+                    #print(data)
                     self.enviar_data(data, self.api_url)
                 elif Packtype == "Caja-UOM1" or Packtype == "Caja2-UOM1" or Packtype == "Caja3-UOM1":
                     data = {
@@ -211,7 +209,7 @@ class ProcesadorArchivos:
                         "ext_udf_str1": SKU,
                         "ext_udf_str2": Tipodepaquete
                     }
-                    print(data)
+                    #print(data)
                     self.enviar_data(data, self.api_url)
             
             
@@ -227,11 +225,26 @@ class ProcesadorArchivos:
 
                 print(f"Archivo procesado: {archivo}")
 
+
+        except ValueError as ve:
+            # Manejar el error si la estructura del archivo no es válida
+            messagebox.showerror(f"Error al procesar el archivo {archivo}: {str(e)}")
+            
+            carpeta_procesados_data_e = os.path.join(self.carpeta_procesados_data_e)
+            if not os.path.exists(carpeta_procesados_data_e):
+                os.makedirs(carpeta_procesados_data_e)
+
+            # Mueve el archivo con error a la carpeta de errores
+            nuevo_nombre_error = os.path.join(carpeta_procesados_data_e, os.path.basename(archivo))
+            f.close()
+            os.rename(archivo, nuevo_nombre_error)
         except Exception as e:
-            print(f"Error al procesar el archivo {archivo}: {str(e)}")
+            messagebox.showerror("Error", f"Error al procesar el archivo {archivo}: {str(e)}")
+
 
     def procesar_imagen(self, ruta_imagen):
         try:
+
             with open(ruta_imagen, "rb") as img_file:
                 # Leer la imagen en bytes
                 img_bytes = img_file.read()
@@ -263,7 +276,6 @@ class ProcesadorArchivos:
                         "entityName": "SCE_Product_Image"
                     }
                 }
-                print(json_imagen)
                 # Puedes imprimir el JSON antes de enviarlo
                 # Enviar el JSON al servicio de imágenes
                 self.enviar_data(json_imagen, self.url_api_image)
@@ -281,23 +293,42 @@ class ProcesadorArchivos:
                 print(f"Imagen procesada: {ruta_imagen}")
 
         except Exception as e:
-            print(f"Error al procesar la imagen {ruta_imagen}: {str(e)}")
+            messagebox.showerror("Error", f"Error al obtener el archivo más antiguo:", f"Error: {str(e)}")
 
-    def obtener_archivo_mas_antiguo(self, carpeta, extension=None):
+
+    def obtener_archivo_mas_antiguo(self, carpeta, extension=None, es_imagen=False):
         archivos = [f for f in os.listdir(carpeta) if f.endswith(extension)] if extension else os.listdir(carpeta)
         if not archivos:
             return None
-        if extension== ".jpg":
-            archivos.sort(key=lambda x: datetime.strptime(x.split("_")[2].replace('.jpg', ''), "%Y%m%d%H%M%S"))
+        try:
+            if extension == ".jpg" and es_imagen:
+                archivos.sort(key=lambda x: datetime.strptime(x.split("_")[2].replace('.jpg', ''), "%Y%m%d%H%M%S"))
+            elif extension == ".txt" and not es_imagen:
+                archivos.sort(key=lambda x: datetime.strptime(x.split("_")[1].replace('.txt', ''), "%Y%m%d%H%M%S"))
+            else:
+                raise ValueError("Extensión o tipo de archivo no admitido")
+
             return os.path.join(carpeta, archivos[0])
-        elif extension== ".txt":
-            archivos.sort(key=lambda x: datetime.strptime(x.split("_")[1].replace('.txt', ''), "%Y%m%d%H%M%S"))
-            return os.path.join(carpeta, archivos[0])
+
+        except Exception as e:
+            # Si hay un error al ordenar o al obtener el archivo más antiguo, mueve el archivo a la carpeta de errores
+            messagebox.showerror("Error al obtener el archivo más antiguo:", f"Error: {str(e)}")
+            carpeta_errores = self.carpeta_procesados_data_e if not es_imagen else self.carpeta_procesados_img_e
+            carpeta_errores = os.path.join(carpeta_errores)
+            
+            if not os.path.exists(carpeta_errores):
+                os.makedirs(carpeta_errores)
+
+            # Mueve el archivo con error a la carpeta de errores
+            archivo_con_error = os.path.join(carpeta_errores, archivos[0])
+            os.rename(os.path.join(carpeta, archivos[0]), archivo_con_error)
+            time.sleep(2)
+            
     # Ajustes en el método procesar_archivos_continuamente
     def procesar_archivos_continuamente(self):
         while self.ejecutar:
-            archivo_txt = self.obtener_archivo_mas_antiguo(self.carpeta_archivos, ".txt")
-            archivo_img = self.obtener_archivo_mas_antiguo(self.carpeta_imagenes, ".jpg")  # Ajustar la extensión
+            archivo_txt = self.obtener_archivo_mas_antiguo(self.carpeta_archivos, ".txt", es_imagen=False)
+            archivo_img = self.obtener_archivo_mas_antiguo(self.carpeta_imagenes, ".jpg", es_imagen=True)  # Ajustar la extensión
 
             if archivo_txt:
                 self.procesar_archivo(archivo_txt)
@@ -316,6 +347,22 @@ class ProcesadorArchivos:
             messagebox.showinfo("Proceso detenido", "El proceso ha sido detenido exitosamente.")
         except Exception as e:
             messagebox.showerror("Error al detener el proceso", f"Error: {str(e)}")
+
+    def verificar_nombre_archivo(self, archivo, es_imagen=False):
+        nombre_valido = False
+
+        if es_imagen:
+            # Verificar estructura del nombre de imagen
+            partes = os.path.basename(archivo).split("_")
+            if len(partes) == 3 and partes[0].isalnum() and partes[1].isalnum() and partes[2].endswith(".jpg"):
+                nombre_valido = True
+        else:
+            # Verificar estructura del nombre de archivo de texto
+            partes = os.path.basename(archivo).split("_")
+            if len(partes) == 2 and partes[0] == "CubiScan" and partes[1].endswith(".txt"):
+                nombre_valido = True
+
+        return nombre_valido
 
     def ejecutar_interfaz(self):
         # Ejecutar la interfaz gráfica
