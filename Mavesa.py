@@ -63,7 +63,7 @@ class SerialInterface:
         
         self.tipo_medida="Unidad"
         
-        self.fecha_limite = (2023, 12, 15, 13, 45)
+        self.fecha_limite = (2024, 12, 15, 13, 45)
         
         self.verificar_fecha_limite_periodicamente()
         
@@ -74,8 +74,8 @@ class SerialInterface:
 
 
     def imagenes(self):
-        self.logo_montra = tk.PhotoImage(file="Icons/Logo_Montra3.png")
-        self.logo_montra = self.logo_montra.subsample(1, 1)
+        self.logo_Montra = tk.PhotoImage(file="Icons/Logo_Montra.png")
+        self.logo_Montra = self.logo_montra.subsample(1, 1)
         self.logo_cubiscan = tk.PhotoImage(file="Icons/Cubiscan_logo.png")
         self.logo_cubiscan = self.logo_cubiscan.subsample(1, 1)
         
@@ -185,7 +185,7 @@ class SerialInterface:
         self.background = ttk.Label(self.medicion_tab, background=self.colorbackground)
         self.background.grid(row=0, column=0, rowspan=9,padx=(0,20), sticky="snew")
 
-        label_montra = ttk.Label(self.medicion_tab, image=self.logo_montra, background=self.colorbackground)
+        label_montra = ttk.Label(self.medicion_tab, image=self.logo_Montra, background=self.colorbackground)
         label_montra.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
         
         label_deprisa = ttk.Label(self.medicion_tab, image=self.logo_deprisa, background=self.colorbackground)
