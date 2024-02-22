@@ -20,7 +20,6 @@ from PIL import Image, ImageTk
 class ProcesadorArchivos:
     def __init__(self, root):
         self.root = root
-        root.iconbitmap("logo-montra.ico")
         self.root.title("MONTRA")
         self.contraseña = "MONTRA"
         self.contraseña_verificada = False
@@ -615,6 +614,7 @@ class ProcesadorArchivos:
             messagebox.showerror("Error al detener el proceso", f"Error: {str(e)}")
 
     def ejecutar_interfaz(self):
+        root.iconbitmap("logo-montra.ico")
         # Ejecutar la interfaz gráfica
         root.mainloop()
         

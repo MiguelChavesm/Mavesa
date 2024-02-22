@@ -1,45 +1,48 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-from PIL import Image, ImageTk
-import os
+from tkinter import *
+from threading import Thread
+import requests
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ConnectionError
-import requests
+import os
 from datetime import datetime
-from tkinter import *
-from tkinter import messagebox
-from threading import Thread
 import base64
 import xml.etree.ElementTree as ET
 import time
+from PIL import Image, ImageTk
+
+
+
+
 
 
 class ProcesadorArchivos:
     def __init__(self, root):
         self.root = root
-        root.iconbitmap("logo-montra.ico")
         self.root.title("MONTRA")
-        self.contraseña = "MONTRA"
-        self.contraseña_verificada = False
-        self.configuracion_bloqueada = False  # Nuevo: Estado de bloqueo de configuración
-
-        # Contadores para envío exitoso y fallido
-        self.envio_exitoso = 0
-        self.envio_fallido = 0
 
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill="both", expand=True)
         self.medicion_tab = ttk.Frame(self.notebook)
         self.configuracion_tab = ttk.Frame(self.notebook)
 
+        self.envio_fallido = 0
         self.notebook.add(self.medicion_tab, text="WebService", state="normal")
         self.notebook.add(self.configuracion_tab, text="Configuración", state="disabled")
 
         self.create_medicion_tab()
         self.create_configuracion_tab()
 
+
+        
+        self.contraseña = "MONTRA"
+        self.contraseña_verificada = False
+        self.configuracion_bloqueada = False  # Nuevo: Estado de bloqueo de configuración
+        # Contadores para envío exitoso y fallido
+        self.envio_exitoso = 0
         # Configurar evento para abrir la pestaña de configuración
-        self.notebook.bind("<<NotebookTabChanged>>", self.abrir_pestana_configuracion)
+        #self.notebook.bind("<<NotebookTabChanged>>", self.abrir_pestana_configuracion)
         self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
 
         self.token_url = "https://mingle-sso.inforcloudsuite.com:443/NUGH6DGWYB5E8AMU_TST/as/token.oauth2"
@@ -66,9 +69,10 @@ class ProcesadorArchivos:
         self.ejecutar = True
         self.error=False
         
+        root.iconbitmap("logo-montra.ico")
         # Enlazar evento de teclado para detectar la combinación de teclas
-        self.root.bind("<KeyPress>", self.verificar_combinacion_teclas)
-
+        #self.root.bind("<KeyPress>", self.verificar_combinacion_teclas)
+    """
     def verificar_combinacion_teclas(self, event):
         if event.keysym == "Insert" and event.state & 4 != 0 and event.state & 1 != 0 and event.state & 8 != 0:
             # Verificar si la pestaña actual es la de configuración y la contraseña no ha sido verificada
@@ -117,7 +121,7 @@ class ProcesadorArchivos:
             for child in self.configuracion_tab.winfo_children():
                 if isinstance(child, ttk.Entry):
                     child.config(state="disabled")
-
+    
     def restablecer_campos_configuracion(self):
         # Restablecer solo si se cierra la ventana emergente de verificación con la "X"
         if self.dialogo_contraseña:
@@ -150,7 +154,7 @@ class ProcesadorArchivos:
             # Limpiar el campo de contraseña
             self.entrada_contraseña.delete(0, tk.END)        
             
-
+    """
     def create_medicion_tab(self):
         # Agregar la pestaña de medición al notebook
         self.notebook.add(self.medicion_tab, text="WebService", state="normal")
@@ -159,20 +163,20 @@ class ProcesadorArchivos:
         img_width, img_height = 100, 100
 
         # Imagen 1
-        #imagen1 = Image.open("imagen_1.png")
-        #imagen1 = imagen1.resize((img_width, img_height), Image.BICUBIC)
-        #imagen1_tk = ImageTk.PhotoImage(imagen1)
-        #self.label_imagen1 = tk.Label(self.medicion_tab, image=imagen1_tk)
-        #self.label_imagen1.image = imagen1_tk
-        #self.label_imagen1.grid(row=0, column=0, padx=(7, 2), pady=(10, 0))
+        imagen1 = Image.open("imagen_1.png")
+        imagen1 = imagen1.resize((img_width, img_height), Image.BICUBIC)
+        imagen1_tk = ImageTk.PhotoImage(imagen1)
+        self.label_imagen1 = tk.Label(self.medicion_tab, image=imagen1_tk)
+        self.label_imagen1.image = imagen1_tk
+        self.label_imagen1.grid(row=0, column=0, padx=(7, 2), pady=(10, 0))
 
         # Imagen 2
-        #imagen2 = Image.open("imagen_2.png")
-        #imagen2 = imagen2.resize((img_width, img_height), Image.BICUBIC)
-        #imagen2_tk = ImageTk.PhotoImage(imagen2)
-        #self.label_imagen2 = tk.Label(self.medicion_tab, image=imagen2_tk)
-        #self.label_imagen2.image = imagen2_tk
-        #self.label_imagen2.grid(row=0, column=1, padx=(2, 7), pady=(10, 0))
+        imagen2 = Image.open("imagen_2.png")
+        imagen2 = imagen2.resize((img_width, img_height), Image.BICUBIC)
+        imagen2_tk = ImageTk.PhotoImage(imagen2)
+        self.label_imagen2 = tk.Label(self.medicion_tab, image=imagen2_tk)
+        self.label_imagen2.image = imagen2_tk
+        self.label_imagen2.grid(row=0, column=1, padx=(2, 7), pady=(10, 0))
 
         # Botones "Iniciar" y "Detener"
         button_frame = tk.Frame(self.medicion_tab)
@@ -185,9 +189,9 @@ class ProcesadorArchivos:
         # Configuración del botón "Detener"
         self.boton_detener = tk.Button(button_frame, text="Detener", command=self.detener_proceso, relief="groove", padx=10, pady=5, borderwidth=2)
         self.boton_detener.grid(row=0, column=1, padx=(30, 100), pady=5)
-
+        """
         # Botón "Configuraciones"
-        """configuraciones_image = Image.open("configuraciones.png")
+        configuraciones_image = Image.open("configuraciones.png")
         configuraciones_image = configuraciones_image.resize((20, 20))
         configuraciones_icon = ImageTk.PhotoImage(configuraciones_image)
         boton_configuraciones = ttk.Button(self.medicion_tab, image=configuraciones_icon, command=self.abrir_pestana_configuraciones)
@@ -233,10 +237,10 @@ class ProcesadorArchivos:
         ttk.Label(self.configuracion_tab, text="Carpeta Origen Data:").grid(row=8, column=1, pady=5, sticky="w")
 
         # Mostrar la imagen "folder.png" al lado del campo "Carpeta Origen"
-        """folder_image = Image.open("folder.png")
+        folder_image = Image.open("folder.png")
         folder_image = folder_image.resize((20, 20))  # Redimensiona la imagen
         folder_icon = ImageTk.PhotoImage(folder_image)
-        """
+        
         # Asignar la función seleccionar_carpeta al evento de clic del botón
         def seleccionar_carpeta():
             selected_folder = filedialog.askdirectory()
@@ -244,20 +248,20 @@ class ProcesadorArchivos:
                 carpeta_origen_entry.delete(0, tk.END)  # Borrar el contenido actual del Entry
                 carpeta_origen_entry.insert(0, selected_folder)  # Insertar la nueva ruta seleccionada
 
-        """folder_label = ttk.Button(self.configuracion_tab, image=folder_icon, command=seleccionar_carpeta)
+        folder_label = ttk.Button(self.configuracion_tab, image=folder_icon, command=seleccionar_carpeta)
         folder_label.image = folder_icon
         folder_label.grid(row=8, column=4, padx=(5, 0), pady=5, sticky="w")
-        """
+        
         carpeta_origen_entry = ttk.Entry(self.configuracion_tab, width=40)
         carpeta_origen_entry.grid(row=8, column=2, columnspan=2, pady=5, sticky="w")
 
         ttk.Label(self.configuracion_tab, text="Carpeta Origen Imagen:").grid(row=9, column=1, pady=5, sticky="w")
 
         # Mostrar la imagen "folder.png" al lado del campo "Carpeta Origen Imagen"
-        """folder_image = Image.open("folder.png")
+        folder_image = Image.open("folder.png")
         folder_image = folder_image.resize((20, 20))  # Redimensiona la imagen
         folder_icon = ImageTk.PhotoImage(folder_image)
-        """
+        
         # Asignar la función seleccionar_carpeta_imagen al evento de clic del botón
         def seleccionar_carpeta_imagen():
             selected_folder = filedialog.askdirectory()
@@ -265,10 +269,10 @@ class ProcesadorArchivos:
                 carpeta_origen_imagen_entry.delete(0, tk.END)  # Borrar el contenido actual del Entry
                 carpeta_origen_imagen_entry.insert(0, selected_folder)  # Insertar la nueva ruta seleccionada
 
-        """folder_label_imagen = ttk.Button(self.configuracion_tab, image=folder_icon, command=seleccionar_carpeta_imagen)
+        folder_label_imagen = ttk.Button(self.configuracion_tab, image=folder_icon, command=seleccionar_carpeta_imagen)
         folder_label_imagen.image = folder_icon
         folder_label_imagen.grid(row=9, column=4, padx=(5, 0), pady=5, sticky="w")
-        """
+        
         carpeta_origen_imagen_entry = ttk.Entry(self.configuracion_tab, width=40)
         carpeta_origen_imagen_entry.grid(row=9, column=2, columnspan=2, pady=5, sticky="w")
 
@@ -583,25 +587,44 @@ class ProcesadorArchivos:
             return None
 
 
-    def procesar_archivos(self):
+    # Ajustes en el método procesar_archivos_continuamente
+    def procesar_archivos_continuamente(self):
         while self.ejecutar:
-            archivo = self.obtener_archivo_mas_antiguo(self.carpeta_archivos)
-            if archivo:
-                self.procesar_archivo(archivo)
+            archivo_txt = self.obtener_archivo_mas_antiguo(self.carpeta_archivos, ".txt", es_imagen=False)
+            archivo_img = self.obtener_archivo_mas_antiguo(self.carpeta_imagenes, ".jpg", es_imagen=True)  # Ajustar la extensión
+        
 
+            if archivo_txt:
+                self.error=True
+                self.procesar_archivo(archivo_txt)
+            elif archivo_img:
+                self.error=True
+                self.procesar_imagen(archivo_img)
 
+    
     def iniciar_proceso(self):
-        # Iniciar un hilo para el procesamiento de archivos
-        self.proceso_archivos_thread = Thread(target=self.procesar_archivos)
-        self.proceso_archivos_thread.start()
+        # Inicia un hilo para ejecutar el procesamiento en segundo plano
+        self.ejecutar=True
+        Thread(target=self.procesar_archivos_continuamente).start()
 
     def detener_proceso(self):
-        # Detener el hilo de procesamiento de archivos
-        self.ejecutar = False
+        try:
+            # Detiene el hilo de procesamiento
+            self.ejecutar = False
+            messagebox.showinfo("Proceso detenido", "El proceso ha sido detenido exitosamente.")
+        except Exception as e:
+            messagebox.showerror("Error al detener el proceso", f"Error: {str(e)}")
 
     def ejecutar_interfaz(self):
         # Ejecutar la interfaz gráfica
         root.mainloop()
+        
+    def cerrar_aplicacion(self):
+        # Detener el hilo de procesamiento
+        self.ejecutar = False
+        # Cerrar la interfaz gráfica
+        self.root.destroy()
+
 
 
 if __name__ == "__main__":
