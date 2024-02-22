@@ -216,7 +216,7 @@ class ProcesadorArchivos:
         imagen1_tk = ImageTk.PhotoImage(imagen1)
         self.label_imagen1 = tk.Label(self.medicion_tab, image=imagen1_tk)
         self.label_imagen1.image = imagen1_tk
-        self.label_imagen1.grid(row=0, column=0, padx=(7, 2), pady=(10, 0))
+        self.label_imagen1.grid(row=0, column=1, padx=(7, 2), pady=(10, 0))
 
         # Imagen 2
         imagen2 = Image.open("imagen_2.png")
@@ -224,7 +224,7 @@ class ProcesadorArchivos:
         imagen2_tk = ImageTk.PhotoImage(imagen2)
         self.label_imagen2 = tk.Label(self.medicion_tab, image=imagen2_tk)
         self.label_imagen2.image = imagen2_tk
-        self.label_imagen2.grid(row=0, column=1, padx=(2, 7), pady=(10, 0))
+        self.label_imagen2.grid(row=0, column=2, padx=(2, 7), pady=(10, 0))
 
         # Botones "Iniciar" y "Detener"
         button_frame = tk.Frame(self.medicion_tab)
@@ -244,7 +244,7 @@ class ProcesadorArchivos:
         configuraciones_icon = ImageTk.PhotoImage(configuraciones_image)
         boton_configuraciones = ttk.Button(self.medicion_tab, image=configuraciones_icon, command=self.abrir_pestana_configuraciones)
         boton_configuraciones.image = configuraciones_icon
-        boton_configuraciones.grid(row=2, column=1, padx=10, pady=(0, 10), sticky="se")
+        boton_configuraciones.grid(row=2, column=1, padx=10, pady=(0, 10), sticky="w")
         
         # Contadores de envío
         frame_contadores = ttk.Frame(self.medicion_tab)
