@@ -614,6 +614,7 @@ if __name__ == "__main__":
     app = ProcesadorArchivos(root)
     app.ejecutar_interfaz()
 #comentario prueba
+
 """
 # Crear una instancia de la clase y ejecutar la interfaz
 procesador = ProcesadorArchivos()
