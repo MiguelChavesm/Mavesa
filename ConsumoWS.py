@@ -1,6 +1,7 @@
 import tkinter as tk
+from tkinter import *
 from tkinter import ttk, messagebox, filedialog
-from PIL import Image, ImageTk
+from PIL import ImageTk,Image
 import os
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ConnectionError
