@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, simpledialog
 from tkinter import *
 from threading import Thread
 import requests
@@ -23,7 +23,6 @@ class ProcesadorArchivos:
     def __init__(self, root):
         self.root = root
         self.root.title("MONTRA")
-        self.contraseña = "MONTRA"
         self.contraseña_verificada = False
         self.configuracion_bloqueada = False  # Nuevo: Estado de bloqueo de configuración
 
@@ -53,6 +52,8 @@ class ProcesadorArchivos:
         
         # Enlazar evento de teclado para detectar la combinación de teclas
         self.root.bind("<KeyPress>", self.verificar_combinacion_teclas)
+        root.iconbitmap("logo-montra.ico")
+
 
     def cargar_configuracion(self):
         config = configparser.ConfigParser()
@@ -67,7 +68,9 @@ class ProcesadorArchivos:
             self.password.set(config['Configuracion'].get('password', ''))
             self.carpeta_archivos.set(config['Configuracion'].get('carpeta_archivos', ''))
             self.carpeta_imagenes.set(config['Configuracion'].get('carpeta_imagenes', ''))
+            self.contraseña = config['Configuracion'].get('contraseña_adicional', 'MONTRA101') # Obtener la contraseña
 
+            
     def guardar_configuracion(self):
         config = configparser.ConfigParser()
         config.read('config.ini')
@@ -80,6 +83,7 @@ class ProcesadorArchivos:
         config['Configuracion']['password'] = self.password.get()
         config['Configuracion']['carpeta_archivos'] = self.carpeta_archivos.get()
         config['Configuracion']['carpeta_imagenes'] = self.carpeta_imagenes.get()
+        config['Configuracion']['contraseña_adicional'] = self.contraseña
 
         with open('config.ini', 'w') as configfile:
             config.write(configfile)
@@ -106,14 +110,15 @@ class ProcesadorArchivos:
     def abrir_pestana_configuracion(self, event):
         if self.notebook.index("current") == 1 and self.contraseña_verificada:
             self.notebook.select(self.configuracion_tab)
-
+    
+    
     def abrir_pestana_configuraciones(self):
         if not self.contraseña_verificada:
             # Establecer la pestaña actual en la de configuración
             self.notebook.select(self.configuracion_tab)
             self.dialogo_contraseña = tk.Toplevel()
-            self.dialogo_contraseña.title("Verificación de acceso")
-            self.dialogo_contraseña.geometry("300x100")
+            self.dialogo_contraseña.title("Acceso")
+            self.dialogo_contraseña.geometry("300x120")
             self.dialogo_contraseña.resizable(False, False)
 
             etiqueta_contraseña = ttk.Label(self.dialogo_contraseña, text="Ingrese la contraseña:")
@@ -121,6 +126,7 @@ class ProcesadorArchivos:
 
             self.entrada_contraseña = ttk.Entry(self.dialogo_contraseña, show="*")
             self.entrada_contraseña.pack(pady=5)
+            self.entrada_contraseña.focus_set()
             self.entrada_contraseña.bind("<Return>", lambda event: self.verificar_contraseña())
 
             boton_verificar = ttk.Button(self.dialogo_contraseña, text="Verificar", command=self.verificar_contraseña)
@@ -133,6 +139,9 @@ class ProcesadorArchivos:
             for child in self.configuracion_tab.winfo_children():
                 if isinstance(child, ttk.Entry):
                     child.config(state="disabled")
+            
+            self.dialogo_contraseña.iconbitmap("logo-montra.ico")
+
 
     def restablecer_campos_configuracion(self):
         # Restablecer solo si se cierra la ventana emergente de verificación con la "X"
@@ -164,8 +173,35 @@ class ProcesadorArchivos:
         else:
             messagebox.showerror("Error", "Contraseña incorrecta")
             # Limpiar el campo de contraseña
-            self.entrada_contraseña.delete(0, tk.END)        
+            self.entrada_contraseña.delete(0, tk.END)
+            self.dialogo_contraseña.destroy()     
             
+    def abrir_ventana_cambio_contraseña(self):
+        # Ventana emergente para cambiar la contraseña
+        cambio_contraseña_window = tk.Toplevel(self.root)
+        cambio_contraseña_window.title("Cambiar Contraseña")
+
+        ttk.Label(cambio_contraseña_window, text="Contraseña Actual:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        contraseña_actual_entry = ttk.Entry(cambio_contraseña_window, show="*")
+        contraseña_actual_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        ttk.Label(cambio_contraseña_window, text="Nueva Contraseña:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        nueva_contraseña_entry = ttk.Entry(cambio_contraseña_window, show="*")
+        nueva_contraseña_entry.grid(row=1, column=1, padx=10, pady=5)
+
+        ttk.Button(cambio_contraseña_window, text="Guardar", command=lambda: self.guardar_nueva_contraseña(contraseña_actual_entry.get(), nueva_contraseña_entry.get(), cambio_contraseña_window)).grid(row=2, columnspan=2, padx=10, pady=5)
+
+    def guardar_nueva_contraseña(self, contraseña_actual, nueva_contraseña, window):
+        if contraseña_actual != self.contraseña:
+            messagebox.showerror("Error", "La contraseña actual es incorrecta.")
+        else:
+            if nueva_contraseña:
+                self.contraseña = nueva_contraseña
+                messagebox.showinfo("Contraseña Cambiada", "La contraseña ha sido cambiada con éxito.")
+                window.destroy()
+                self.guardar_configuracion()  # Guardar la nueva contraseña en el archivo config.ini
+
+
 
     def create_medicion_tab(self):
         # Agregar la pestaña de medición al notebook
@@ -235,6 +271,7 @@ class ProcesadorArchivos:
         # Ruta de la carpeta donde se encuentran los archivos txt
         self.carpeta_archivos = tk.StringVar()
         self.carpeta_imagenes= tk.StringVar()
+        
         # Ruta de la carpeta "procesados"
         
         self.carpeta_procesados_data = "Procesados/Data"
@@ -245,31 +282,31 @@ class ProcesadorArchivos:
         
         
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, column=1, pady=5, sticky="w")
-        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.api_url,  width=27)
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.api_url,  width=45)
         url_entry.grid(row=1, column=2, pady=5, sticky="w")
         
         ttk.Label(self.configuracion_tab, text="URL Imagen:").grid(row=2, column=1, pady=5, sticky="w")
-        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_api_image,  width=27)
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_api_image,  width=45)
         url_entry.grid(row=2, column=2, pady=5, sticky="w")
         
         ttk.Label(self.configuracion_tab, text="Client ID:").grid(row=3, column=1, pady=5, sticky="w")
-        client_id_entry = ttk.Entry(self.configuracion_tab, textvariable=self.client_id)
+        client_id_entry = ttk.Entry(self.configuracion_tab, textvariable=self.client_id, width=45)
         client_id_entry.grid(row=3, column=2, pady=5, sticky="w")
 
         ttk.Label(self.configuracion_tab, text="Client Secret:").grid(row=4, column=1, pady=5, sticky="w")
-        client_secret_entry = ttk.Entry(self.configuracion_tab, textvariable=self.client_secret)
+        client_secret_entry = ttk.Entry(self.configuracion_tab, textvariable=self.client_secret, width=45)
         client_secret_entry.grid(row=4, column=2, pady=5, sticky="w")
 
         ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=5, column=1, pady=5, sticky="w")
-        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username)
+        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username, width=45)
         username_entry.grid(row=5, column=2, pady=5, sticky="w")
 
         ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=6, column=1, pady=5, sticky="w")
-        password_entry = ttk.Entry(self.configuracion_tab, textvariable=self.password)
+        password_entry = ttk.Entry(self.configuracion_tab, textvariable=self.password, width=45)
         password_entry.grid(row=6, column=2, pady=5, sticky="w")
 
         ttk.Label(self.configuracion_tab, text="URL del token:").grid(row=7, column=1, pady=5, sticky="w")
-        token_url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.token_url, width=27)
+        token_url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.token_url, width=45)
         token_url_entry.grid(row=7, column=2, pady=5, sticky="w")
 
         ttk.Label(self.configuracion_tab, text="PROCESAMIENTO DE DATOS", font=("Helvetica", 13)).grid(row=8, column=1, columnspan=3, pady=(20, 5), sticky="w")
@@ -279,6 +316,8 @@ class ProcesadorArchivos:
         folder_image = Image.open("folder.png")
         folder_image = folder_image.resize((20, 20))  # Redimensiona la imagen
         folder_icon = ImageTk.PhotoImage(folder_image)
+        
+        
         
         # Asignar la función seleccionar_carpeta al evento de clic del botón
         def seleccionar_carpeta():
@@ -320,6 +359,8 @@ class ProcesadorArchivos:
         boton_save = customtkinter.CTkButton(self.configuracion_tab, text="Guardar Configuración", border_color="#AFACAC", border_width=1,   corner_radius=5,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#7DC2DA", width=120, height=20, compound="left", image= save_image, command=self.guardar_configuracion)
         boton_save.grid(row=11, column=2, padx=(10,30), pady=10)
         
+        cambiar_contraseña_button = ttk.Button(self.configuracion_tab, text="Cambiar Contraseña", command=self.abrir_ventana_cambio_contraseña)
+        cambiar_contraseña_button.grid(row=12, columnspan=2, padx=10, pady=5)
 
 
     def enviar_data(self, data, url, archivo, es_imagen=False):
@@ -662,9 +703,9 @@ class ProcesadorArchivos:
             messagebox.showerror("Error al detener el proceso", f"Error: {str(e)}")
 
     def ejecutar_interfaz(self):
-        root.iconbitmap("logo-montra.ico")
         # Ejecutar la interfaz gráfica
         root.mainloop()
+
         
     def cerrar_aplicacion(self):
         # Detener el hilo de procesamiento
@@ -676,9 +717,11 @@ class ProcesadorArchivos:
 
 if __name__ == "__main__":
     root = tk.Tk()
+    
     root.resizable(False,False)
     app = ProcesadorArchivos(root)
     app.ejecutar_interfaz()
+
 #comentario prueba
 """
 # Crear una instancia de la clase y ejecutar la interfaz

@@ -72,7 +72,7 @@ class ProcesadorArchivos:
         root.iconbitmap("logo-montra.ico")
         # Enlazar evento de teclado para detectar la combinación de teclas
         #self.root.bind("<KeyPress>", self.verificar_combinacion_teclas)
-    """
+    
     def verificar_combinacion_teclas(self, event):
         if event.keysym == "Insert" and event.state & 4 != 0 and event.state & 1 != 0 and event.state & 8 != 0:
             # Verificar si la pestaña actual es la de configuración y la contraseña no ha sido verificada
@@ -154,7 +154,7 @@ class ProcesadorArchivos:
             # Limpiar el campo de contraseña
             self.entrada_contraseña.delete(0, tk.END)        
             
-    """
+    
     def create_medicion_tab(self):
         # Agregar la pestaña de medición al notebook
         self.notebook.add(self.medicion_tab, text="WebService", state="normal")
@@ -189,7 +189,7 @@ class ProcesadorArchivos:
         # Configuración del botón "Detener"
         self.boton_detener = tk.Button(button_frame, text="Detener", command=self.detener_proceso, relief="groove", padx=10, pady=5, borderwidth=2)
         self.boton_detener.grid(row=0, column=1, padx=(30, 100), pady=5)
-        """
+        
         # Botón "Configuraciones"
         configuraciones_image = Image.open("configuraciones.png")
         configuraciones_image = configuraciones_image.resize((20, 20))
@@ -197,7 +197,7 @@ class ProcesadorArchivos:
         boton_configuraciones = ttk.Button(self.medicion_tab, image=configuraciones_icon, command=self.abrir_pestana_configuraciones)
         boton_configuraciones.image = configuraciones_icon
         boton_configuraciones.grid(row=2, column=1, padx=10, pady=(0, 10), sticky="se")
-        """
+        
         # Contadores de envío
         frame_contadores = ttk.Frame(self.medicion_tab)
         frame_contadores.grid(row=4, column=1, padx=(80, 30), pady=(0, 10), sticky="w")
