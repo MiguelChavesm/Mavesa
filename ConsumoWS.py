@@ -1,20 +1,20 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-from PIL import Image, ImageTk
-import os
+from tkinter import *
+from threading import Thread
+import requests
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ConnectionError
-import requests
+import os
 from datetime import datetime
-import tkinter as tk
-from tkinter import ttk, messagebox
-from tkinter import *
-import tkinter as tk
-from tkinter import messagebox
-from threading import Thread
 import base64
 import xml.etree.ElementTree as ET
 import time
+from PIL import Image, ImageTk
+
+
+
+
 
 
 class ProcesadorArchivos:
@@ -196,7 +196,7 @@ class ProcesadorArchivos:
         boton_configuraciones = ttk.Button(self.medicion_tab, image=configuraciones_icon, command=self.abrir_pestana_configuraciones)
         boton_configuraciones.image = configuraciones_icon
         boton_configuraciones.grid(row=2, column=1, padx=10, pady=(0, 10), sticky="se")
-
+        
         # Contadores de envío
         frame_contadores = ttk.Frame(self.medicion_tab)
         frame_contadores.grid(row=4, column=1, padx=(80, 30), pady=(0, 10), sticky="w")
@@ -239,7 +239,7 @@ class ProcesadorArchivos:
         folder_image = Image.open("folder.png")
         folder_image = folder_image.resize((20, 20))  # Redimensiona la imagen
         folder_icon = ImageTk.PhotoImage(folder_image)
-
+        
         # Asignar la función seleccionar_carpeta al evento de clic del botón
         def seleccionar_carpeta():
             selected_folder = filedialog.askdirectory()
@@ -250,7 +250,7 @@ class ProcesadorArchivos:
         folder_label = ttk.Button(self.configuracion_tab, image=folder_icon, command=seleccionar_carpeta)
         folder_label.image = folder_icon
         folder_label.grid(row=8, column=4, padx=(5, 0), pady=5, sticky="w")
-
+        
         carpeta_origen_entry = ttk.Entry(self.configuracion_tab, width=40)
         carpeta_origen_entry.grid(row=8, column=2, columnspan=2, pady=5, sticky="w")
 
@@ -260,7 +260,7 @@ class ProcesadorArchivos:
         folder_image = Image.open("folder.png")
         folder_image = folder_image.resize((20, 20))  # Redimensiona la imagen
         folder_icon = ImageTk.PhotoImage(folder_image)
-
+        
         # Asignar la función seleccionar_carpeta_imagen al evento de clic del botón
         def seleccionar_carpeta_imagen():
             selected_folder = filedialog.askdirectory()
@@ -271,7 +271,7 @@ class ProcesadorArchivos:
         folder_label_imagen = ttk.Button(self.configuracion_tab, image=folder_icon, command=seleccionar_carpeta_imagen)
         folder_label_imagen.image = folder_icon
         folder_label_imagen.grid(row=9, column=4, padx=(5, 0), pady=5, sticky="w")
-
+        
         carpeta_origen_imagen_entry = ttk.Entry(self.configuracion_tab, width=40)
         carpeta_origen_imagen_entry.grid(row=9, column=2, columnspan=2, pady=5, sticky="w")
 
@@ -586,25 +586,44 @@ class ProcesadorArchivos:
             return None
 
 
-    def procesar_archivos(self):
+    # Ajustes en el método procesar_archivos_continuamente
+    def procesar_archivos_continuamente(self):
         while self.ejecutar:
-            archivo = self.obtener_archivo_mas_antiguo(self.carpeta_archivos)
-            if archivo:
-                self.procesar_archivo(archivo)
+            archivo_txt = self.obtener_archivo_mas_antiguo(self.carpeta_archivos, ".txt", es_imagen=False)
+            archivo_img = self.obtener_archivo_mas_antiguo(self.carpeta_imagenes, ".jpg", es_imagen=True)  # Ajustar la extensión
+        
 
+            if archivo_txt:
+                self.error=True
+                self.procesar_archivo(archivo_txt)
+            elif archivo_img:
+                self.error=True
+                self.procesar_imagen(archivo_img)
 
+    
     def iniciar_proceso(self):
-        # Iniciar un hilo para el procesamiento de archivos
-        self.proceso_archivos_thread = Thread(target=self.procesar_archivos)
-        self.proceso_archivos_thread.start()
+        # Inicia un hilo para ejecutar el procesamiento en segundo plano
+        self.ejecutar=True
+        Thread(target=self.procesar_archivos_continuamente).start()
 
     def detener_proceso(self):
-        # Detener el hilo de procesamiento de archivos
-        self.ejecutar = False
+        try:
+            # Detiene el hilo de procesamiento
+            self.ejecutar = False
+            messagebox.showinfo("Proceso detenido", "El proceso ha sido detenido exitosamente.")
+        except Exception as e:
+            messagebox.showerror("Error al detener el proceso", f"Error: {str(e)}")
 
     def ejecutar_interfaz(self):
         # Ejecutar la interfaz gráfica
         root.mainloop()
+        
+    def cerrar_aplicacion(self):
+        # Detener el hilo de procesamiento
+        self.ejecutar = False
+        # Cerrar la interfaz gráfica
+        self.root.destroy()
+
 
 
 if __name__ == "__main__":

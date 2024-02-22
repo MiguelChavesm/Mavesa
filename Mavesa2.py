@@ -113,10 +113,8 @@ class ProcesadorArchivos:
         
         ttk.Label(self.configuracion_tab, text="Hola")
 
-    # Ajustes en el método enviar_data
     def enviar_data(self, data, url, archivo, es_imagen=False):
             # Verificar conexión a Internet
-
             
         try:
             # Obtener token de acceso
@@ -189,7 +187,6 @@ class ProcesadorArchivos:
             else: 
                 self.mover_a_carpeta_errores(archivo, es_imagen=False)
 
-    # Método para verificar la conexión a Internet
     def verificar_conexion(self):
         try:
             # Intentar hacer una solicitud a un sitio web conocido
@@ -214,7 +211,7 @@ class ProcesadorArchivos:
         except: pass
 
     def procesar_archivo(self, archivo):
-        
+
         if not self.verificar_conexion():
             messagebox.showerror("Error de conexión", "No hay conexión a Internet.")
             return
@@ -321,12 +318,6 @@ class ProcesadorArchivos:
             os.rename(archivo, nuevo_nombre_error)
 
     def procesar_imagen(self, ruta_imagen):
-                
-        if not self.verificar_conexion():
-            messagebox.showerror("Error de conexión", "No hay conexión a Internet.")
-            return
-        
-        
         try:
             
             carpeta_procesados_img = os.path.join(self.carpeta_procesados_img)
@@ -345,7 +336,6 @@ class ProcesadorArchivos:
 
                 # Codificar la imagen en base64
                 img_base64 = base64.b64encode(img_bytes).decode('utf-8')
-                print  (os.path.basename(ruta_imagen).split('_')[1].split('.')[0])
                 # Construir el JSON de la imagen
                 json_imagen = {
                     "item": {
@@ -391,7 +381,6 @@ class ProcesadorArchivos:
         except Exception as e:
             messagebox.showerror("Error", f"Error al procesar la imagen:", f"Error: {str(e)}")
 
-
     def obtener_archivo_mas_antiguo(self, carpeta, extension=None, es_imagen=False):
         time.sleep(1)
         archivos = [f for f in os.listdir(carpeta) if f.endswith(extension)] if extension else os.listdir(carpeta)
@@ -434,7 +423,6 @@ class ProcesadorArchivos:
         else:
             return None
 
-    # Ajustes en el método procesar_archivos_continuamente
     def procesar_archivos_continuamente(self):
         while self.ejecutar:
             archivo_txt = self.obtener_archivo_mas_antiguo(self.carpeta_archivos, ".txt", es_imagen=False)
@@ -448,7 +436,6 @@ class ProcesadorArchivos:
                 self.error=True
                 self.procesar_imagen(archivo_img)
 
-    
     def iniciar_proceso(self):
         # Inicia un hilo para ejecutar el procesamiento en segundo plano
         self.ejecutar=True
