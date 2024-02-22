@@ -37,6 +37,8 @@ class ProcesadorArchivos:
 
         self.notebook.add(self.medicion_tab, text="WebService", state="normal")
         self.notebook.add(self.configuracion_tab, text="Configuración", state="disabled")
+        
+        self.imagenes()
         self.create_medicion_tab()
         self.create_configuracion_tab()
         self.cargar_configuracion()
@@ -52,7 +54,7 @@ class ProcesadorArchivos:
         
         # Enlazar evento de teclado para detectar la combinación de teclas
         self.root.bind("<KeyPress>", self.verificar_combinacion_teclas)
-        root.iconbitmap("logo-montra.ico")
+        root.iconbitmap("Icons/logo-montra.ico")
 
 
     def cargar_configuracion(self):
@@ -70,7 +72,7 @@ class ProcesadorArchivos:
             self.carpeta_imagenes.set(config['Configuracion'].get('carpeta_imagenes', ''))
             self.contraseña = config['Configuracion'].get('contraseña_adicional', 'MONTRA101') # Obtener la contraseña
 
-            
+
     def guardar_configuracion(self):
         config = configparser.ConfigParser()
         config.read('config.ini')
@@ -88,6 +90,14 @@ class ProcesadorArchivos:
         with open('config.ini', 'w') as configfile:
             config.write(configfile)
 
+    def imagenes(self):
+        self.logo_montra = tk.PhotoImage(file="Icons/imagen_1.png")
+        self.logo_montra = self.logo_montra.subsample(1, 1)
+        self.logo_cubiscan = tk.PhotoImage(file="Icons/Cubiscan_logo.png")
+        self.logo_cubiscan = self.logo_cubiscan.subsample(1, 1)
+        
+        self.logo_mavesa = tk.PhotoImage(file="Icons/imagen_4.png")
+        self.logo_mavesa = self.logo_mavesa.subsample(2, 2)
 
     def verificar_combinacion_teclas(self, event):
         if event.keysym == "Insert" and event.state & 4 != 0 and event.state & 1 != 0 and event.state & 8 != 0:
@@ -110,7 +120,6 @@ class ProcesadorArchivos:
     def abrir_pestana_configuracion(self, event):
         if self.notebook.index("current") == 1 and self.contraseña_verificada:
             self.notebook.select(self.configuracion_tab)
-    
     
     def abrir_pestana_configuraciones(self):
         if not self.contraseña_verificada:
@@ -140,7 +149,7 @@ class ProcesadorArchivos:
                 if isinstance(child, ttk.Entry):
                     child.config(state="disabled")
             
-            self.dialogo_contraseña.iconbitmap("logo-montra.ico")
+            self.dialogo_contraseña.iconbitmap("Icons/logo-montra.ico")
 
 
     def restablecer_campos_configuracion(self):
@@ -175,7 +184,7 @@ class ProcesadorArchivos:
             # Limpiar el campo de contraseña
             self.entrada_contraseña.delete(0, tk.END)
             self.dialogo_contraseña.destroy()     
-            
+    
     def abrir_ventana_cambio_contraseña(self):
         # Ventana emergente para cambiar la contraseña
         cambio_contraseña_window = tk.Toplevel(self.root)
@@ -202,59 +211,54 @@ class ProcesadorArchivos:
                 self.guardar_configuracion()  # Guardar la nueva contraseña en el archivo config.ini
 
 
-
     def create_medicion_tab(self):
         # Agregar la pestaña de medición al notebook
         self.notebook.add(self.medicion_tab, text="WebService", state="normal")
 
-        # Tamaño deseado para las imágenes
-        img_width, img_height = 100, 100
+        # Insertarla en una etiqueta.
+        self.colorbackground= "lightgrey"
+        self.background = ttk.Label(self.medicion_tab, background=self.colorbackground)
+        self.background.grid(row=0, column=0, columnspan=9, rowspan=2, pady=(0,0), sticky="snew")
 
-        # Imagen 1
-        imagen1 = Image.open("imagen_1.png")
-        imagen1 = imagen1.resize((img_width, img_height), Image.BICUBIC)
-        imagen1_tk = ImageTk.PhotoImage(imagen1)
-        self.label_imagen1 = tk.Label(self.medicion_tab, image=imagen1_tk)
-        self.label_imagen1.image = imagen1_tk
-        self.label_imagen1.grid(row=0, column=1, padx=(7, 2), pady=(10, 0))
+        self.label_imagen1 = ttk.Label(self.medicion_tab, image=self.logo_montra, background=self.colorbackground)
+        self.label_imagen1.grid(row=0, column=0)
 
-        # Imagen 2
-        imagen2 = Image.open("imagen_2.png")
-        imagen2 = imagen2.resize((img_width, img_height), Image.BICUBIC)
-        imagen2_tk = ImageTk.PhotoImage(imagen2)
-        self.label_imagen2 = tk.Label(self.medicion_tab, image=imagen2_tk)
-        self.label_imagen2.image = imagen2_tk
-        self.label_imagen2.grid(row=0, column=2, padx=(2, 7), pady=(10, 0))
+        self.label_imagen3 = ttk.Label(self.medicion_tab, image=self.logo_cubiscan, background=self.colorbackground)
+        self.label_imagen3.grid(row=1, column=1)
+
+        self.label_imagen2 = ttk.Label(self.medicion_tab, image=self.logo_mavesa, background=self.colorbackground)
+        self.label_imagen2.grid(row=0, column=2, rowspan=2)
+        
 
         # Botones "Iniciar" y "Detener"
         button_frame = tk.Frame(self.medicion_tab)
-        button_frame.grid(row=1, column=0, columnspan=2, pady=10)
+        button_frame.grid(row=2, column=0, columnspan=2, pady=10)
 
         # Configuración del botón "Iniciar"
         self.boton_iniciar = tk.Button(button_frame, text="Iniciar", command=self.iniciar_proceso, relief="groove", padx=10, pady=5, borderwidth=2)
-        self.boton_iniciar.grid(row=0, column=0, padx=(100, 30), pady=5)
+        self.boton_iniciar.grid(row=2, column=0, padx=(100, 30), pady=5)
 
         # Configuración del botón "Detener"
         self.boton_detener = tk.Button(button_frame, text="Detener", command=self.detener_proceso, relief="groove", padx=10, pady=5, borderwidth=2)
-        self.boton_detener.grid(row=0, column=1, padx=(30, 100), pady=5)
+        self.boton_detener.grid(row=2, column=1, padx=(30, 100), pady=5)
 
         # Botón "Configuraciones"
-        configuraciones_image = Image.open("configuraciones.png")
+        configuraciones_image = Image.open("Icons/configuraciones.png")
         configuraciones_image = configuraciones_image.resize((20, 20))
         configuraciones_icon = ImageTk.PhotoImage(configuraciones_image)
         boton_configuraciones = ttk.Button(self.medicion_tab, image=configuraciones_icon, command=self.abrir_pestana_configuraciones)
         boton_configuraciones.image = configuraciones_icon
-        boton_configuraciones.grid(row=2, column=1, padx=10, pady=(0, 10), sticky="w")
+        boton_configuraciones.grid(row=4, column=1, padx=10, pady=(0, 10), sticky="se")
         
         # Contadores de envío
         frame_contadores = ttk.Frame(self.medicion_tab)
         frame_contadores.grid(row=4, column=1, padx=(80, 30), pady=(0, 10), sticky="w")
 
         self.label_envio_exitoso = ttk.Label(frame_contadores, text="Envío Exitoso: 0", foreground="green")
-        self.label_envio_exitoso.grid(row=0, column=2, padx=5, pady=5, sticky="w")
+        self.label_envio_exitoso.grid(row=5, column=2, padx=5, pady=5, sticky="w")
 
         self.label_envio_fallido = ttk.Label(frame_contadores, text="Envío Fallido: 0", foreground="red")
-        self.label_envio_fallido.grid(row=0, column=4, padx=5, pady=5, sticky="w")
+        self.label_envio_fallido.grid(row=5, column=4, padx=5, pady=5, sticky="w")
 
     def create_configuracion_tab(self):
 
@@ -313,7 +317,7 @@ class ProcesadorArchivos:
         ttk.Label(self.configuracion_tab, text="Carpeta Origen Data:").grid(row=9, column=1, pady=5, sticky="w")
 
         # Mostrar la imagen "folder.png" al lado del campo "Carpeta Origen"
-        folder_image = Image.open("folder.png")
+        folder_image = Image.open("Icons/folder.png")
         folder_image = folder_image.resize((20, 20))  # Redimensiona la imagen
         folder_icon = ImageTk.PhotoImage(folder_image)
         
@@ -336,7 +340,7 @@ class ProcesadorArchivos:
         ttk.Label(self.configuracion_tab, text="Carpeta Origen Imagen:").grid(row=10, column=1, pady=5, sticky="w")
 
         # Mostrar la imagen "folder.png" al lado del campo "Carpeta Origen Imagen"
-        folder_image = Image.open("folder.png")
+        folder_image = Image.open("Icons/folder.png")
         folder_image = folder_image.resize((20, 20))  # Redimensiona la imagen
         folder_icon = ImageTk.PhotoImage(folder_image)
         
@@ -355,7 +359,7 @@ class ProcesadorArchivos:
         carpeta_origen_imagen_entry.grid(row=10, column=2, columnspan=2, pady=5, sticky="w")
 
         
-        save_image = customtkinter.CTkImage(Image.open("save.png").resize((100,100), Image.Resampling.LANCZOS))
+        save_image = customtkinter.CTkImage(Image.open("Icons/save.png").resize((100,100), Image.Resampling.LANCZOS))
         boton_save = customtkinter.CTkButton(self.configuracion_tab, text="Guardar Configuración", border_color="#AFACAC", border_width=1,   corner_radius=5,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#7DC2DA", width=120, height=20, compound="left", image= save_image, command=self.guardar_configuracion)
         boton_save.grid(row=11, column=2, padx=(10,30), pady=10)
         
