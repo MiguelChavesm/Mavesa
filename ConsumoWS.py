@@ -310,15 +310,15 @@ class ProcesadorArchivos:
 
         folder_label_imagen = ttk.Button(self.configuracion_tab, image=folder_icon, command=seleccionar_carpeta_imagen)
         folder_label_imagen.image = folder_icon
-        folder_label_imagen.grid(row=9, column=4, padx=(5, 0), pady=5, sticky="w")
+        folder_label_imagen.grid(row=10, column=4, padx=(5, 0), pady=5, sticky="w")
         
         carpeta_origen_imagen_entry = ttk.Entry(self.configuracion_tab, width=40, textvariable=self.carpeta_imagenes)
-        carpeta_origen_imagen_entry.grid(row=9, column=2, columnspan=2, pady=5, sticky="w")
+        carpeta_origen_imagen_entry.grid(row=10, column=2, columnspan=2, pady=5, sticky="w")
 
         
         save_image = customtkinter.CTkImage(Image.open("save.png").resize((100,100), Image.Resampling.LANCZOS))
         boton_save = customtkinter.CTkButton(self.configuracion_tab, text="Guardar Configuración", border_color="#AFACAC", border_width=1,   corner_radius=5,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#7DC2DA", width=120, height=20, compound="left", image= save_image, command=self.guardar_configuracion)
-        boton_save.grid(row=10, column=2, padx=(10,30), pady=10)
+        boton_save.grid(row=11, column=2, padx=(10,30), pady=10)
         
 
 
