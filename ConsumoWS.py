@@ -10,6 +10,8 @@ from datetime import datetime
 import base64
 import xml.etree.ElementTree as ET
 import time
+import configparser
+import customtkinter
 from PIL import Image, ImageTk
 
 
@@ -36,40 +38,52 @@ class ProcesadorArchivos:
 
         self.notebook.add(self.medicion_tab, text="WebService", state="normal")
         self.notebook.add(self.configuracion_tab, text="Configuración", state="disabled")
-
         self.create_medicion_tab()
         self.create_configuracion_tab()
+        self.cargar_configuracion()
 
         # Configurar evento para abrir la pestaña de configuración
         self.notebook.bind("<<NotebookTabChanged>>", self.abrir_pestana_configuracion)
         self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
 
-        self.token_url = "https://mingle-sso.inforcloudsuite.com:443/NUGH6DGWYB5E8AMU_TST/as/token.oauth2"
-        # Información de autenticación
-        self.api_url = "https://mingle-ionapi.inforcloudsuite.com/NUGH6DGWYB5E8AMU_TST/WM/wmwebservice_rest/NUGH6DGWYB5E8AMU_TST_ENTERPRISE/packs"
-        self.url_api_image = "https://mingle-ionapi.inforcloudsuite.com/NUGH6DGWYB5E8AMU_TST/IDM/api/bc?$checkout=true&$language=en"
         
-        self.client_id = "NUGH6DGWYB5E8AMU_TST~_tOirRI-jy9pzu4Xun2ESJvNqMVTHg_jJntMDzFtgV0"
-        self.client_secret = "ptQu3maUMRAlScq_xe2-mZLsJkPtT_fkrDWTOGEVJreUHyPqavPhncXtX1cRCVE8uNSQei4CQO0xqssZvwgU9A"
-        self.username = "NUGH6DGWYB5E8AMU_TST#ktzJTSlcIfY9X5sH9tUacghKkC7n7TLZXCgx51jQyHjPXJvxzarlQsufPAusg4XgDa6GbLvXKcKvjwN7ljHBlg"
-        self.password = "jxy5rCtcwN_jf0b8R1Cbe2FxkBQ-paCjmDwspfGqu7E1Mwj0SsDneZKBF41g4alWZ-lTUWCRl0p7M8tJ0yVknA"
-
-        # Ruta de la carpeta donde se encuentran los archivos txt
-        self.carpeta_archivos = "C:/CubiScan/QbitDB/Data/Texto"
-        self.carpeta_imagenes="C:/CubiScan/QbitDB/Data/Images"
-        # Ruta de la carpeta "procesados"
-        self.carpeta_procesados_data = "Procesados/Data"
-        self.carpeta_procesados_data_e = "Procesados/Data/Errores/"
-        
-        self.carpeta_procesados_img = "Procesados/Images"
-        self.carpeta_procesados_img_e = "Procesados/Images/Errores/"
-
         # Variable para controlar la ejecución del programa
         self.ejecutar = True
         self.error=False
         
         # Enlazar evento de teclado para detectar la combinación de teclas
         self.root.bind("<KeyPress>", self.verificar_combinacion_teclas)
+
+    def cargar_configuracion(self):
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        if 'Configuracion' in config:
+            self.token_url.set(config['Configuracion'].get('Token_url', ''))
+            self.api_url.set(config['Configuracion'].get('api_url', ''))
+            self.url_api_image.set(config['Configuracion'].get('url_api_image', ''))
+            self.client_id.set(config['Configuracion'].get('client_id', ''))
+            self.client_secret.set(config['Configuracion'].get('client_secret', ''))
+            self.username.set(config['Configuracion'].get('username', ''))
+            self.password.set(config['Configuracion'].get('password', ''))
+            self.carpeta_archivos.set(config['Configuracion'].get('carpeta_archivos', ''))
+            self.carpeta_imagenes.set(config['Configuracion'].get('carpeta_imagenes', ''))
+
+    def guardar_configuracion(self):
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        config['Configuracion']['Token_url'] = self.token_url.get()
+        config['Configuracion']['api_url'] = self.api_url.get()
+        config['Configuracion']['url_api_image'] = self.url_api_image.get()
+        config['Configuracion']['client_id'] = self.client_id.get()
+        config['Configuracion']['client_secret'] = self.client_secret.get()
+        config['Configuracion']['username'] = self.username.get()
+        config['Configuracion']['password'] = self.password.get()
+        config['Configuracion']['carpeta_archivos'] = self.carpeta_archivos.get()
+        config['Configuracion']['carpeta_imagenes'] = self.carpeta_imagenes.get()
+
+        with open('config.ini', 'w') as configfile:
+            config.write(configfile)
+
 
     def verificar_combinacion_teclas(self, event):
         if event.keysym == "Insert" and event.state & 4 != 0 and event.state & 1 != 0 and event.state & 8 != 0:
@@ -207,32 +221,59 @@ class ProcesadorArchivos:
         self.label_envio_fallido.grid(row=0, column=4, padx=5, pady=5, sticky="w")
 
     def create_configuracion_tab(self):
+
+        self.token_url = tk.StringVar()
+        # Información de autenticación
+        self.api_url = tk.StringVar()
+        self.url_api_image = tk.StringVar()
+        
+        self.client_id = tk.StringVar()
+        self.client_secret = tk.StringVar()
+        self.username = tk.StringVar()
+        self.password = tk.StringVar()
+
+        # Ruta de la carpeta donde se encuentran los archivos txt
+        self.carpeta_archivos = tk.StringVar()
+        self.carpeta_imagenes= tk.StringVar()
+        # Ruta de la carpeta "procesados"
+        
+        self.carpeta_procesados_data = "Procesados/Data"
+        self.carpeta_procesados_data_e = "Procesados/Data/Errores/"
+        self.carpeta_procesados_img = "Procesados/Images"
+        self.carpeta_procesados_img_e = "Procesados/Images/Errores/"
+
+        
+        
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, column=1, pady=5, sticky="w")
-        url_entry = ttk.Entry(self.configuracion_tab, width=27)
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.api_url,  width=27)
         url_entry.grid(row=1, column=2, pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="URL Imagen:").grid(row=2, column=1, pady=5, sticky="w")
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_api_image,  width=27)
+        url_entry.grid(row=2, column=2, pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="Client ID:").grid(row=3, column=1, pady=5, sticky="w")
+        client_id_entry = ttk.Entry(self.configuracion_tab, textvariable=self.client_id)
+        client_id_entry.grid(row=3, column=2, pady=5, sticky="w")
 
-        ttk.Label(self.configuracion_tab, text="Client ID:").grid(row=2, column=1, pady=5, sticky="w")
-        client_id_entry = ttk.Entry(self.configuracion_tab)
-        client_id_entry.grid(row=2, column=2, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="Client Secret:").grid(row=4, column=1, pady=5, sticky="w")
+        client_secret_entry = ttk.Entry(self.configuracion_tab, textvariable=self.client_secret)
+        client_secret_entry.grid(row=4, column=2, pady=5, sticky="w")
 
-        ttk.Label(self.configuracion_tab, text="Client Secret:").grid(row=3, column=1, pady=5, sticky="w")
-        client_secret_entry = ttk.Entry(self.configuracion_tab)
-        client_secret_entry.grid(row=3, column=2, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=5, column=1, pady=5, sticky="w")
+        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username)
+        username_entry.grid(row=5, column=2, pady=5, sticky="w")
 
-        ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=4, column=1, pady=5, sticky="w")
-        username_entry = ttk.Entry(self.configuracion_tab)
-        username_entry.grid(row=4, column=2, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=6, column=1, pady=5, sticky="w")
+        password_entry = ttk.Entry(self.configuracion_tab, textvariable=self.password)
+        password_entry.grid(row=6, column=2, pady=5, sticky="w")
 
-        ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=5, column=1, pady=5, sticky="w")
-        password_entry = ttk.Entry(self.configuracion_tab)
-        password_entry.grid(row=5, column=2, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="URL del token:").grid(row=7, column=1, pady=5, sticky="w")
+        token_url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.token_url, width=27)
+        token_url_entry.grid(row=7, column=2, pady=5, sticky="w")
 
-        ttk.Label(self.configuracion_tab, text="URL del token:").grid(row=6, column=1, pady=5, sticky="w")
-        token_url_entry = ttk.Entry(self.configuracion_tab, width=27)
-        token_url_entry.grid(row=6, column=2, pady=5, sticky="w")
-
-        ttk.Label(self.configuracion_tab, text="PROCESAMIENTO DE DATOS", font=("Helvetica", 13)).grid(row=7, column=1, columnspan=3, pady=(20, 5), sticky="w")
-        ttk.Label(self.configuracion_tab, text="Carpeta Origen Data:").grid(row=8, column=1, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="PROCESAMIENTO DE DATOS", font=("Helvetica", 13)).grid(row=8, column=1, columnspan=3, pady=(20, 5), sticky="w")
+        ttk.Label(self.configuracion_tab, text="Carpeta Origen Data:").grid(row=9, column=1, pady=5, sticky="w")
 
         # Mostrar la imagen "folder.png" al lado del campo "Carpeta Origen"
         folder_image = Image.open("folder.png")
@@ -248,12 +289,12 @@ class ProcesadorArchivos:
 
         folder_label = ttk.Button(self.configuracion_tab, image=folder_icon, command=seleccionar_carpeta)
         folder_label.image = folder_icon
-        folder_label.grid(row=8, column=4, padx=(5, 0), pady=5, sticky="w")
+        folder_label.grid(row=9, column=4, padx=(5, 0), pady=5, sticky="w")
         
-        carpeta_origen_entry = ttk.Entry(self.configuracion_tab, width=40)
-        carpeta_origen_entry.grid(row=8, column=2, columnspan=2, pady=5, sticky="w")
+        carpeta_origen_entry = ttk.Entry(self.configuracion_tab, textvariable=self.carpeta_archivos, width=40)
+        carpeta_origen_entry.grid(row=9, column=2, columnspan=2, pady=5, sticky="w")
 
-        ttk.Label(self.configuracion_tab, text="Carpeta Origen Imagen:").grid(row=9, column=1, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="Carpeta Origen Imagen:").grid(row=10, column=1, pady=5, sticky="w")
 
         # Mostrar la imagen "folder.png" al lado del campo "Carpeta Origen Imagen"
         folder_image = Image.open("folder.png")
@@ -271,8 +312,15 @@ class ProcesadorArchivos:
         folder_label_imagen.image = folder_icon
         folder_label_imagen.grid(row=9, column=4, padx=(5, 0), pady=5, sticky="w")
         
-        carpeta_origen_imagen_entry = ttk.Entry(self.configuracion_tab, width=40)
+        carpeta_origen_imagen_entry = ttk.Entry(self.configuracion_tab, width=40, textvariable=self.carpeta_imagenes)
         carpeta_origen_imagen_entry.grid(row=9, column=2, columnspan=2, pady=5, sticky="w")
+
+        
+        save_image = customtkinter.CTkImage(Image.open("save.png").resize((100,100), Image.Resampling.LANCZOS))
+        boton_save = customtkinter.CTkButton(self.configuracion_tab, text="Guardar Configuración", border_color="#AFACAC", border_width=1,   corner_radius=5,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#7DC2DA", width=120, height=20, compound="left", image= save_image, command=self.guardar_configuracion)
+        boton_save.grid(row=10, column=2, padx=(10,30), pady=10)
+        
+
 
     def enviar_data(self, data, url, archivo, es_imagen=False):
             # Verificar conexión a Internet
@@ -280,12 +328,12 @@ class ProcesadorArchivos:
         try:
             # Obtener token de acceso
             token_response = requests.post(
-                self.token_url,
-                auth=HTTPBasicAuth(self.client_id, self.client_secret),
+                self.token_url.get(),
+                auth=HTTPBasicAuth(self.client_id.get(), self.client_secret.get()),
                 data={
                     "grant_type": "password",
-                    "username": self.username,
-                    "password": self.password
+                    "username": self.username.get(),
+                    "password": self.password.get()
                 }
             )
 
@@ -427,7 +475,7 @@ class ProcesadorArchivos:
                     }
                     #print(data)
                     f.close()
-                    self.enviar_data(data, self.api_url, archivo, es_imagen=False)
+                    self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
                 elif Packtype == "Caja-UOM1" or Packtype == "Caja2-UOM1" or Packtype == "Caja3-UOM1":
                     data = {
                         "packkey": f"{SKU}_{Cantidad}",
@@ -446,7 +494,7 @@ class ProcesadorArchivos:
                     }
                     #print(data)
                     f.close()
-                    self.enviar_data(data, self.api_url, archivo, es_imagen=False)
+                    self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
             
                 if not self.error:
                     carpeta_procesados_data = os.path.join(self.carpeta_procesados_data)
@@ -525,7 +573,7 @@ class ProcesadorArchivos:
                 # Enviar el JSON al servicio de imágenes
                 #if not self.error:
                 img_file.close()
-                self.enviar_data(json_imagen, self.url_api_image, ruta_imagen, es_imagen=True)
+                self.enviar_data(json_imagen, self.url_api_image.get(), ruta_imagen, es_imagen=True)
                 
                 carpeta_procesados_img = os.path.join(self.carpeta_procesados_img)
                 if not os.path.exists(carpeta_procesados_img):
@@ -588,8 +636,8 @@ class ProcesadorArchivos:
     # Ajustes en el método procesar_archivos_continuamente
     def procesar_archivos_continuamente(self):
         while self.ejecutar:
-            archivo_txt = self.obtener_archivo_mas_antiguo(self.carpeta_archivos, ".txt", es_imagen=False)
-            archivo_img = self.obtener_archivo_mas_antiguo(self.carpeta_imagenes, ".jpg", es_imagen=True)  # Ajustar la extensión
+            archivo_txt = self.obtener_archivo_mas_antiguo(self.carpeta_archivos.get(), ".txt", es_imagen=False)
+            archivo_img = self.obtener_archivo_mas_antiguo(self.carpeta_imagenes.get(), ".jpg", es_imagen=True)  # Ajustar la extensión
         
 
             if archivo_txt:
