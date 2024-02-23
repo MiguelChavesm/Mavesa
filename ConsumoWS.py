@@ -240,13 +240,13 @@ class ProcesadorArchivos:
         self.background.grid(row=0, column=0, columnspan=21, rowspan=2, pady=(0,0), sticky="snew")
 
         self.label_imagen1 = ttk.Label(self.medicion_tab, image=self.logo_montra, background=self.colorbackground)
-        self.label_imagen1.grid(row=0, column=0, columnspan=3, padx=(100,150))
+        self.label_imagen1.grid(row=0, column=0, columnspan=2, padx=(30,0), pady=(10,0))
 
         self.label_imagen3 = ttk.Label(self.medicion_tab, image=self.logo_cubiscan, background=self.colorbackground)
-        self.label_imagen3.grid(row=1, column=0, columnspan=3, padx=(100,150))
+        self.label_imagen3.grid(row=1, column=0, columnspan=2, padx=(30,0), pady=(0,10))
 
         self.label_imagen2 = ttk.Label(self.medicion_tab, image=self.logo_mavesa, background=self.colorbackground)
-        self.label_imagen2.grid(row=0, column=6, rowspan=2)
+        self.label_imagen2.grid(row=0, column=19, rowspan=2, columnspan=2, padx=(0,0), sticky="w")
         
 
         # Botones "Iniciar" y "Detener"
@@ -254,15 +254,14 @@ class ProcesadorArchivos:
         #button_frame.grid(row=2, column=4, columnspan=2, pady=10)
 
         # Configuración del botón "Iniciar"
-        self.boton_iniciar = tk.Button(self.medicion_tab, text="Iniciar", command=self.iniciar_proceso, relief="groove", padx=10, pady=5, borderwidth=2, background="lightgrey")
-        self.boton_iniciar.grid(row=2, column=0, columnspan=3, padx=(100,80),  pady=10, stick="w")
+        self.boton_iniciar = tk.Button(self.medicion_tab, text="Iniciar", command=self.iniciar_proceso, relief="groove", padx= 10, pady=5, borderwidth=3, width=10, background="#3C93FF")
+        self.boton_iniciar.grid(row=0, column=2, columnspan=3, padx=(85,55),  pady=10, stick="w")
 
         # Configuración del botón "Detener"
-        self.boton_detener = tk.Button(self.medicion_tab, text="Detener", command=self.detener_proceso, relief="groove", padx=10, pady=5, borderwidth=2, background="lightgrey")
-        self.boton_detener.grid(row=2, column=0, columnspan=2, sticky="e", padx=5, pady=10)
+        self.boton_detener = tk.Button(self.medicion_tab, text="Detener", command=self.detener_proceso, relief="groove", padx= 10, pady=5, borderwidth=3, width=10, background="lightgrey")
+        self.boton_detener.grid(row=1, column=2, columnspan=2, sticky="e", padx=(85,55), pady=10)
 
-        # Botón "Configuraciones"
-        
+        # Botón "Configuraciones" 
         configuraciones_image = Image.open("Icons/configuraciones.png")
         configuraciones_image = configuraciones_image.resize((20, 20))
         configuraciones_icon = ImageTk.PhotoImage(configuraciones_image)
@@ -311,10 +310,10 @@ class ProcesadorArchivos:
         self.response_entry.grid(row=7, column=0, columnspan=20, pady=5, padx=(10,10), sticky="nsew")
 
         self.label_envio_exitoso = ttk.Label(self.medicion_tab, text="Envío exitosos: 0", foreground="green")
-        self.label_envio_exitoso.grid(row=8, column=0, columnspan=2, sticky="e", padx=5, pady=10)
+        self.label_envio_exitoso.grid(row=8, column=0, columnspan=2, padx=(120,0), pady=(0,10))
 
         self.label_envio_fallido = ttk.Label(self.medicion_tab, text="Envíos fallidos: 0", foreground="red")
-        self.label_envio_fallido.grid(row=8,column=6, sticky="w")
+        self.label_envio_fallido.grid(row=8, column=19, rowspan=2, columnspan=2, padx=(0,0), sticky="w")
 
     def create_configuracion_tab(self):
         
