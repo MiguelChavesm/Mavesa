@@ -263,14 +263,15 @@ class ProcesadorArchivos:
         
         
         # Crear la tabla para mostrar los datos
-        columns = ('SKU', 'UOM' , 'CNT', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha')
+        columns = ('SKU', 'PackType' ,'UOM' , 'CNT', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha')
         self.tree = ttk.Treeview(self.medicion_tab, columns=columns, show='headings')
 
         for col in columns:
             self.tree.heading(col, text=col)
-            self.tree.column('SKU', width=200)
-            self.tree.column('UOM', width=100)
-            self.tree.column('CNT', width=50)
+            self.tree.column('SKU', width=150)
+            self.tree.column('PackType', width=80)
+            self.tree.column('UOM', width=50)
+            self.tree.column('CNT', width=40)
             self.tree.column('Largo', width=50)
             self.tree.column('Ancho', width=50)
             self.tree.column('Alto', width=50)
@@ -439,6 +440,9 @@ class ProcesadorArchivos:
                             json_response = response.json()
                             #print("Solicitud exitosa (JSON):", json_response)
                             print("El dato se envió correctamente al WS")
+                            self.envio_exitoso += 1
+                            self.tree.tag_configure('verde', background='lightgreen')
+                            self.tree.item(self.item_id, tags=('verde',))
                         except requests.exceptions.JSONDecodeError:
                             try:
                                 self.error=False
@@ -449,12 +453,16 @@ class ProcesadorArchivos:
                             except ET.ParseError:
                                 messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", response.text)
                     else:
-                        messagebox.showerror("Error en la solicitud:", response.text)
+                        print("Error en la solicitud:", response.text)
                         # Mover el archivo a la carpeta de errores
                         if es_imagen:
                             self.mover_a_carpeta_errores(archivo, es_imagen=True)
                         else: 
                             self.mover_a_carpeta_errores(archivo, es_imagen=False)
+                            self.envio_fallido += 1
+                            self.tree.tag_configure('rojo', background='#FA5656')
+                            self.tree.item(self.item_id, tags=('rojo',))
+
                     # Incrementar el contador de envíos exitosos
                 else:
                     self.error=True
@@ -464,16 +472,25 @@ class ProcesadorArchivos:
                         self.mover_a_carpeta_errores(archivo, es_imagen=True)
                     else: 
                         self.mover_a_carpeta_errores(archivo, es_imagen=False)
+                        self.envio_fallido += 1
+                        self.tree.tag_configure('rojo', background='#FA5656')
+                        self.tree.item(self.item_id, tags=('rojo',))
+
             else:
                 self.error=True
                 messagebox.showerror(f"Error al obtener el token de acceso:", token_response.text)
                 # Mover el archivo a la carpeta de errores
                 if es_imagen:
                     self.mover_a_carpeta_errores(archivo, es_imagen=True)
-                else: 
+                else:
+                    self.envio_fallido += 1
+                    self.tree.tag_configure('rojo', background='#FA5656')
+                    self.tree.item(self.item_id, tags=('rojo',))
                     self.mover_a_carpeta_errores(archivo, es_imagen=False)
                 
         except ConnectionError:
+            self.tree.tag_configure('rojo', background='lightred')
+            self.tree.item(self.item_id, tags=('rojo',))
             self.error=True
             messagebox.showerror("Error de conexión", "No se pudo establecer conexión con el servidor.")
             # Mover el archivo a la carpeta de errores
@@ -493,12 +510,9 @@ class ProcesadorArchivos:
     def mover_a_carpeta_errores(self, archivo, es_imagen=False):
         carpeta_errores = self.carpeta_procesados_data_e if not es_imagen else self.carpeta_procesados_img_e
         carpeta_errores = os.path.join(carpeta_errores)
-
         if not os.path.exists(carpeta_errores):
             os.makedirs(carpeta_errores)
-
         archivo_con_error = os.path.join(carpeta_errores, os.path.basename(archivo))
-
         if os.path.exists(archivo_con_error):
             os.remove(archivo_con_error)
         try:
@@ -536,6 +550,7 @@ class ProcesadorArchivos:
                 Ancho = float(Ancho)
                 Alto = float(Alto)
                 Peso = float(Peso)
+                fecha = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 
 
                 if Packtype == "Unidad-UOM3":
@@ -561,6 +576,7 @@ class ProcesadorArchivos:
                     }
                     #print(data)
                     f.close()
+                    self.item_id=self.tree.insert('', 'end', values=(SKU, Packtype, Tipodepaquete, Cantidad ,Largo, Ancho, Alto, Peso, fecha))
                     self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
                 elif Packtype == "Caja-UOM1" or Packtype == "Caja2-UOM1" or Packtype == "Caja3-UOM1":
                     data = {
@@ -581,6 +597,7 @@ class ProcesadorArchivos:
                     #print(data)
                     f.close()
                     self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
+                    self.tree.insert('', 'end', values=(SKU, Packtype, Tipodepaquete, Cantidad ,Largo, Ancho, Alto, Peso, fecha))
             
                 if not self.error:
                     carpeta_procesados_data = os.path.join(self.carpeta_procesados_data)
@@ -591,7 +608,7 @@ class ProcesadorArchivos:
                     nuevo_nombre = os.path.join(self.carpeta_procesados_data, os.path.basename(archivo))
                     # Cerrar el archivo antes de intentar moverlo
                     os.rename(archivo, nuevo_nombre)
-
+                self.update_contadores()
                 print(f"Archivo procesado: {archivo}")
 
 
@@ -722,18 +739,23 @@ class ProcesadorArchivos:
     # Ajustes en el método procesar_archivos_continuamente
     def procesar_archivos_continuamente(self):
         while self.ejecutar:
-            archivo_txt = self.obtener_archivo_mas_antiguo(self.carpeta_archivos.get(), ".txt", es_imagen=False)
-            archivo_img = self.obtener_archivo_mas_antiguo(self.carpeta_imagenes.get(), ".jpg", es_imagen=True)  # Ajustar la extensión
-        
+            try: 
+                archivo_txt = self.obtener_archivo_mas_antiguo(self.carpeta_archivos.get(), ".txt", es_imagen=False)
+                archivo_img = self.obtener_archivo_mas_antiguo(self.carpeta_imagenes.get(), ".jpg", es_imagen=True)  # Ajustar la extensión
+            
 
-            if archivo_txt:
-                self.error=True
-                self.procesar_archivo(archivo_txt)
-            elif archivo_img:
-                self.error=True
-                self.procesar_imagen(archivo_img)
+                if archivo_txt:
+                    self.error=True
+                    self.procesar_archivo(archivo_txt)
+                elif archivo_img:
+                    self.error=True
+                    self.procesar_imagen(archivo_img)
+            except: pass
 
-    
+    def update_contadores(self):
+        self.label_envio_exitoso.config(text=f"Envíos exitosos: {self.envio_exitoso}")
+        self.label_envio_fallido.config(text=f"Envíos fallidos: {self.envio_fallido}")
+
     def iniciar_proceso(self):
         # Inicia un hilo para ejecutar el procesamiento en segundo plano
         self.ejecutar=True
