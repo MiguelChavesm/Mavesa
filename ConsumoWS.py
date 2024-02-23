@@ -296,10 +296,10 @@ class ProcesadorArchivos:
         self.response_entry.config(width=20, height=5)
         self.response_entry.grid(row=7, column=0, columnspan=20, pady=5, padx=(10,10), sticky="nsew")
 
-        self.label_envio_exitoso = ttk.Label(self.medicion_tab, text="Envío Exitoso: 0", foreground="green")
+        self.label_envio_exitoso = ttk.Label(self.medicion_tab, text="Envío exitosos: 0", foreground="green")
         self.label_envio_exitoso.grid(row=8, column=0, columnspan=2, sticky="e", padx=5, pady=10)
 
-        self.label_envio_fallido = ttk.Label(self.medicion_tab, text="Envío Fallido: 0", foreground="red")
+        self.label_envio_fallido = ttk.Label(self.medicion_tab, text="Envíos fallidos: 0", foreground="red")
         self.label_envio_fallido.grid(row=8,column=6, sticky="w")
 
     def create_configuracion_tab(self):
@@ -432,12 +432,12 @@ class ProcesadorArchivos:
                         "Authorization": f"Bearer {access_token}",
                         "Content-Type": "application/json"
                     }
-                    response = requests.post(url, json=data, headers=headers)
+                    self.response = requests.post(url, json=data, headers=headers)
 
-                    if response.status_code == 200:
+                    if self.response.status_code == 200:
                         try:
                             self.error=False
-                            json_response = response.json()
+                            self.json_response = self.response.json()
                             #print("Solicitud exitosa (JSON):", json_response)
                             print("El dato se envió correctamente al WS")
                             self.envio_exitoso += 1
@@ -447,13 +447,13 @@ class ProcesadorArchivos:
                             try:
                                 self.error=False
                                 # Intenta analizar la respuesta como XML
-                                xml_response = ET.fromstring(response.text)
+                                xml_response = ET.fromstring(self.response.text)
                                 # print("Solicitud exitosa (XML):", ET.dump(xml_response))
                                 print("La imagen se envió correctamente al WS")
                             except ET.ParseError:
-                                messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", response.text)
+                                messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", self.response.text)
                     else:
-                        print("Error en la solicitud:", response.text)
+                        print("Error en la solicitud:", self.response.text)
                         # Mover el archivo a la carpeta de errores
                         if es_imagen:
                             self.mover_a_carpeta_errores(archivo, es_imagen=True)
@@ -489,7 +489,7 @@ class ProcesadorArchivos:
                     self.mover_a_carpeta_errores(archivo, es_imagen=False)
                 
         except ConnectionError:
-            self.tree.tag_configure('rojo', background='lightred')
+            self.tree.tag_configure('rojo', background='#FA5656')
             self.tree.item(self.item_id, tags=('rojo',))
             self.error=True
             messagebox.showerror("Error de conexión", "No se pudo establecer conexión con el servidor.")
@@ -578,6 +578,7 @@ class ProcesadorArchivos:
                     f.close()
                     self.item_id=self.tree.insert('', 'end', values=(SKU, Packtype, Tipodepaquete, Cantidad ,Largo, Ancho, Alto, Peso, fecha))
                     self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
+                    self.actualizar_log(SKU, es_imagen=False)
                 elif Packtype == "Caja-UOM1" or Packtype == "Caja2-UOM1" or Packtype == "Caja3-UOM1":
                     data = {
                         "packkey": f"{SKU}_{Cantidad}",
@@ -596,8 +597,9 @@ class ProcesadorArchivos:
                     }
                     #print(data)
                     f.close()
+                    self.item_id=self.tree.insert('', 'end', values=(SKU, Packtype, Tipodepaquete, Cantidad ,Largo, Ancho, Alto, Peso, fecha))
                     self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
-                    self.tree.insert('', 'end', values=(SKU, Packtype, Tipodepaquete, Cantidad ,Largo, Ancho, Alto, Peso, fecha))
+                    self.actualizar_log(SKU, es_imagen=False)
             
                 if not self.error:
                     carpeta_procesados_data = os.path.join(self.carpeta_procesados_data)
@@ -645,7 +647,7 @@ class ProcesadorArchivos:
             with open(ruta_imagen, "rb") as img_file:
                 # Leer la imagen en bytes
                 img_bytes = img_file.read()
-
+                SKU= os.path.basename(ruta_imagen).split('_')[0]
                 # Codificar la imagen en base64
                 img_base64 = base64.b64encode(img_bytes).decode('utf-8')
                 # Construir el JSON de la imagen
@@ -677,6 +679,7 @@ class ProcesadorArchivos:
                 #if not self.error:
                 img_file.close()
                 self.enviar_data(json_imagen, self.url_api_image.get(), ruta_imagen, es_imagen=True)
+                self.actualizar_log(SKU, es_imagen=True)
                 
                 carpeta_procesados_img = os.path.join(self.carpeta_procesados_img)
                 if not os.path.exists(carpeta_procesados_img):
@@ -692,6 +695,30 @@ class ProcesadorArchivos:
 
         except Exception as e:
             messagebox.showerror("Error", f"Error al procesar la imagen:", f"Error: {str(e)}")
+
+    def actualizar_log(self, SKU, es_imagen=False):
+        fecha = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        self.response_entry.tag_config('warning', foreground="#FA5656")
+        self.response_entry.tag_config('ok', foreground="green")
+        if self.error and es_imagen:
+            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  {self.response.text}\n", 'warning')
+            self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
+        elif self.error and not es_imagen:
+            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  {self.response.text}\n", 'warning')
+            self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
+        elif not self.error and not es_imagen:
+            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  Los datos fueron enviados exitosamente\n", 'ok')
+            self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
+        else:
+            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  La imagen fue enviada exitosamente\n", 'ok')
+            self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
+        self.response_entry.see(tk.END)  # Desplaza la vista al final del texto
+        self.tree.yview_moveto(1.0)  # Desplaza la vista hacia el final de la tabla
+
 
     def obtener_archivo_mas_antiguo(self, carpeta, extension=None, es_imagen=False):
         time.sleep(1)
@@ -756,6 +783,28 @@ class ProcesadorArchivos:
         self.label_envio_exitoso.config(text=f"Envíos exitosos: {self.envio_exitoso}")
         self.label_envio_fallido.config(text=f"Envíos fallidos: {self.envio_fallido}")
 
+    def exportar_log(self):
+        # Obtener la fecha actual en formato %d-%m-%Y
+        fecha_actual = datetime.now().strftime("%d-%m-%Y")
+        
+        # Nombre del archivo con la fecha actual
+        file_name = f"log_{fecha_actual}.txt"
+        file_path = os.path.join("Log", file_name)
+
+        # Obtener el texto actual en el Entry
+        text_to_export = self.response_entry.get("1.0", "end-1c")
+
+        # Si el archivo ya existe, agregar nuevo contenido
+        if os.path.exists(file_path):
+            with open(file_path, "a") as file:
+                # Agregar nueva línea y el texto actual
+                file.write("\n" + text_to_export)
+        else:
+            # Si el archivo no existe, crear uno nuevo
+            with open(file_path, "w") as file:
+                file.write(text_to_export)
+
+
     def iniciar_proceso(self):
         # Inicia un hilo para ejecutar el procesamiento en segundo plano
         self.ejecutar=True
@@ -777,6 +826,7 @@ class ProcesadorArchivos:
     def cerrar_aplicacion(self):
         # Detener el hilo de procesamiento
         self.ejecutar = False
+        self.exportar_log()
         # Cerrar la interfaz gráfica
         self.root.destroy()
 
