@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog, simpledialog
+from tkinter import ttk, messagebox, filedialog
 from tkinter import *
 from threading import Thread
 import requests
@@ -199,7 +199,12 @@ class ProcesadorArchivos:
         nueva_contraseña_entry.grid(row=1, column=1, padx=10, pady=5)
 
         ttk.Button(cambio_contraseña_window, text="Guardar", command=lambda: self.guardar_nueva_contraseña(contraseña_actual_entry.get(), nueva_contraseña_entry.get(), cambio_contraseña_window)).grid(row=2, columnspan=2, padx=10, pady=5)
+        
+        cambio_contraseña_window.bind("<Return>", lambda event: self.guardar_nueva_contraseña(contraseña_actual_entry.get(), nueva_contraseña_entry.get(), cambio_contraseña_window))
+        
+        cambio_contraseña_window.iconbitmap("Icons/logo-montra.ico")
 
+        
     def guardar_nueva_contraseña(self, contraseña_actual, nueva_contraseña, window):
         if contraseña_actual != self.contraseña:
             messagebox.showerror("Error", "La contraseña actual es incorrecta.")
@@ -218,29 +223,29 @@ class ProcesadorArchivos:
         # Insertarla en una etiqueta.
         self.colorbackground= "lightgrey"
         self.background = ttk.Label(self.medicion_tab, background=self.colorbackground)
-        self.background.grid(row=0, column=0, columnspan=9, rowspan=2, pady=(0,0), sticky="snew")
+        self.background.grid(row=0, column=0, columnspan=21, rowspan=2, pady=(0,0), sticky="snew")
 
         self.label_imagen1 = ttk.Label(self.medicion_tab, image=self.logo_montra, background=self.colorbackground)
-        self.label_imagen1.grid(row=0, column=0)
+        self.label_imagen1.grid(row=0, column=0, columnspan=3, padx=(100,150))
 
         self.label_imagen3 = ttk.Label(self.medicion_tab, image=self.logo_cubiscan, background=self.colorbackground)
-        self.label_imagen3.grid(row=1, column=1)
+        self.label_imagen3.grid(row=1, column=0, columnspan=3, padx=(100,150))
 
         self.label_imagen2 = ttk.Label(self.medicion_tab, image=self.logo_mavesa, background=self.colorbackground)
-        self.label_imagen2.grid(row=0, column=2, rowspan=2)
+        self.label_imagen2.grid(row=0, column=6, rowspan=2)
         
 
         # Botones "Iniciar" y "Detener"
-        button_frame = tk.Frame(self.medicion_tab)
-        button_frame.grid(row=2, column=0, columnspan=2, pady=10)
+        #button_frame = tk.Frame(self.medicion_tab)
+        #button_frame.grid(row=2, column=4, columnspan=2, pady=10)
 
         # Configuración del botón "Iniciar"
-        self.boton_iniciar = tk.Button(button_frame, text="Iniciar", command=self.iniciar_proceso, relief="groove", padx=10, pady=5, borderwidth=2)
-        self.boton_iniciar.grid(row=2, column=0, padx=(100, 30), pady=5)
+        self.boton_iniciar = tk.Button(self.medicion_tab, text="Iniciar", command=self.iniciar_proceso, relief="groove", padx=10, pady=5, borderwidth=2)
+        self.boton_iniciar.grid(row=2, column=0, columnspan=3, padx=(100,80),  pady=10, stick="w")
 
         # Configuración del botón "Detener"
-        self.boton_detener = tk.Button(button_frame, text="Detener", command=self.detener_proceso, relief="groove", padx=10, pady=5, borderwidth=2)
-        self.boton_detener.grid(row=2, column=1, padx=(30, 100), pady=5)
+        self.boton_detener = tk.Button(self.medicion_tab, text="Detener", command=self.detener_proceso, relief="groove", padx=10, pady=5, borderwidth=2)
+        self.boton_detener.grid(row=2, column=0, columnspan=2, sticky="e", padx=5, pady=10)
 
         # Botón "Configuraciones"
         configuraciones_image = Image.open("Icons/configuraciones.png")
@@ -248,17 +253,46 @@ class ProcesadorArchivos:
         configuraciones_icon = ImageTk.PhotoImage(configuraciones_image)
         boton_configuraciones = ttk.Button(self.medicion_tab, image=configuraciones_icon, command=self.abrir_pestana_configuraciones)
         boton_configuraciones.image = configuraciones_icon
-        boton_configuraciones.grid(row=4, column=1, padx=10, pady=(0, 10), sticky="se")
+        #boton_configuraciones.grid(row=4, column=1, padx=10, pady=(0, 10), sticky="se")
         
-        # Contadores de envío
-        frame_contadores = ttk.Frame(self.medicion_tab)
-        frame_contadores.grid(row=4, column=1, padx=(80, 30), pady=(0, 10), sticky="w")
+        # Crear la tabla para mostrar los datos
+        columns = ('SKU', 'UOM' , 'CNT', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha')
+        self.tree = ttk.Treeview(self.medicion_tab, columns=columns, show='headings')
 
-        self.label_envio_exitoso = ttk.Label(frame_contadores, text="Envío Exitoso: 0", foreground="green")
-        self.label_envio_exitoso.grid(row=5, column=2, padx=5, pady=5, sticky="w")
+        for col in columns:
+            self.tree.heading(col, text=col)
+            self.tree.column('SKU', width=200)
+            self.tree.column('UOM', width=100)
+            self.tree.column('CNT', width=50)
+            self.tree.column('Largo', width=50)
+            self.tree.column('Ancho', width=50)
+            self.tree.column('Alto', width=50)
+            self.tree.column('Peso', width=50)
+            self.tree.column('Fecha', width=130)
 
-        self.label_envio_fallido = ttk.Label(frame_contadores, text="Envío Fallido: 0", foreground="red")
-        self.label_envio_fallido.grid(row=5, column=4, padx=5, pady=5, sticky="w")
+        self.tree.grid(row=3, column=0, columnspan=20, pady=(10,5), padx=(10,10))
+        
+        # Aplicar un estilo con bordes a la tabla
+        style = ttk.Style()
+        style.configure("Treeview", font=('Helvetica', 9), rowheight=20)
+        style.configure("Treeview.Heading", font=('Helvetica', 9))
+        style.configure("Treeview.Treeview", borderwidth=1)  # Esto añade bordes alrededor de cada celda
+        
+        # Crear barras de desplazamiento
+        y_scroll = ttk.Scrollbar(self.medicion_tab, orient="vertical", command=self.tree.yview)
+        y_scroll.grid(row=3, column=20, sticky='wns')
+        self.tree.configure(yscrollcommand=y_scroll.set)
+
+        ttk.Label(self.medicion_tab, text="Respuesta WebService:").grid(row=6, column=0, columnspan=2, padx=10, sticky="w")
+        self.response_entry = tk.Text(self.medicion_tab, state="disabled", background="#FCFFD0", font=("Arial", 10))
+        self.response_entry.config(width=20, height=5)
+        self.response_entry.grid(row=7, column=0, columnspan=20, pady=5, padx=(10,10), sticky="nsew")
+
+        self.label_envio_exitoso = ttk.Label(self.medicion_tab, text="Envío Exitoso: 0", foreground="green")
+        self.label_envio_exitoso.grid(row=8, column=0, columnspan=2, sticky="e", padx=5, pady=10)
+
+        self.label_envio_fallido = ttk.Label(self.medicion_tab, text="Envío Fallido: 0", foreground="red")
+        self.label_envio_fallido.grid(row=8,column=6, sticky="w")
 
     def create_configuracion_tab(self):
 
