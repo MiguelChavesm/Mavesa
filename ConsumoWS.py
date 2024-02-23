@@ -248,12 +248,19 @@ class ProcesadorArchivos:
         self.boton_detener.grid(row=2, column=0, columnspan=2, sticky="e", padx=5, pady=10)
 
         # Botón "Configuraciones"
+        
         configuraciones_image = Image.open("Icons/configuraciones.png")
         configuraciones_image = configuraciones_image.resize((20, 20))
         configuraciones_icon = ImageTk.PhotoImage(configuraciones_image)
         boton_configuraciones = ttk.Button(self.medicion_tab, image=configuraciones_icon, command=self.abrir_pestana_configuraciones)
         boton_configuraciones.image = configuraciones_icon
-        #boton_configuraciones.grid(row=4, column=1, padx=10, pady=(0, 10), sticky="se")
+        boton_configuraciones.grid(row=8, column=20, sticky="ne")
+        
+        #configuraciones_image = customtkinter.CTkImage(Image.open("Icons/configuraciones.png").resize((40,40), Image.Resampling.LANCZOS))
+        #configuraciones_image = customtkinter.CTkButton(self.medicion_tab, text="", border_color="#AFACAC", border_width=0 ,corner_radius=0,font=("Helvetica", 14), text_color="#000000", fg_color=self.colorbackground, hover_color="darkgrey", width=40, height=40, compound="left", image= configuraciones_image, command=self.abrir_pestana_configuraciones)
+        #configuraciones_image.grid(row=8, column=10, pady=(0,0), sticky="nw")
+        
+        
         
         # Crear la tabla para mostrar los datos
         columns = ('SKU', 'UOM' , 'CNT', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha')
