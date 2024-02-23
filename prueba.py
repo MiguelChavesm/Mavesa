@@ -1,42 +1,29 @@
 import tkinter as tk
-from tkinter import ttk
 
-def agregar_datos():
-    SKU = "123"
-    Packtype = "Box"
-    Tipodepaquete = "Small"
-    Cantidad = 5
-    Largo = 10
-    Ancho = 5
-    Alto = 3
-    Peso = 2.5
-    fecha = "2024-02-22"
+class ParpadeoBotonApp:
+    def __init__(self, root):
+        self.root = root
+        self.boton_detener = tk.Button(root, text="Detener", command=self.detener_proceso, state="normal", background="#FF7474")
+        self.boton_detener.pack()
+        self.color_actual = "#FF7474"  # Color inicial del botón
+        self.iniciar_parpadeo()
 
-    # Insertar datos en el Treeview
-    item_id = tree.insert('', 'end', values=(SKU, Packtype, Tipodepaquete, Cantidad, Largo, Ancho, Alto, Peso, fecha))
+    def detener_proceso(self):
+        # Detiene el parpadeo
+        self.root.after_cancel(self.parpadeo_id)
+        self.boton_detener.configure(background="#FF7474")  # Restaura el color original
+        self.root.update_idletasks()  # Actualiza la interfaz gráfica
 
-    # Aplicar la etiqueta de fondo verde a la fila recién insertada
-    tree.tag_configure('verde', background='green')
-    tree.item(item_id, tags=('verde',))
+    def cambiar_color(self):
+        # Alterna entre dos colores
+        self.color_actual = "#D3D3D3" if self.color_actual == "#FF7474" else "#FF7474"
+        self.boton_detener.configure(background=self.color_actual)
+        self.parpadeo_id = self.root.after(500, self.cambiar_color)
 
-# Crear la ventana principal
-root = tk.Tk()
-root.title("Ejemplo Treeview con fondo verde")
+    def iniciar_parpadeo(self):
+        self.parpadeo_id = self.root.after(0, self.cambiar_color)
 
-# Crear el Treeview
-tree = ttk.Treeview(root, columns=("SKU", "Packtype", "Tipodepaquete", "Cantidad", "Largo", "Ancho", "Alto", "Peso", "Fecha"), show="headings")
-
-# Configurar encabezados
-for col in ("SKU", "Packtype", "Tipodepaquete", "Cantidad", "Largo", "Ancho", "Alto", "Peso", "Fecha"):
-    tree.heading(col, text=col)
-    tree.column(col, width=100)
-
-# Crear botón para agregar datos
-agregar_datos_button = tk.Button(root, text="Agregar Datos", command=agregar_datos)
-agregar_datos_button.pack(pady=10)
-
-# Mostrar el Treeview
-tree.pack()
-
-# Iniciar el bucle principal
-root.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = ParpadeoBotonApp(root)
+    root.mainloop()

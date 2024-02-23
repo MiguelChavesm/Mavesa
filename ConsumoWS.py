@@ -240,11 +240,11 @@ class ProcesadorArchivos:
         #button_frame.grid(row=2, column=4, columnspan=2, pady=10)
 
         # Configuración del botón "Iniciar"
-        self.boton_iniciar = tk.Button(self.medicion_tab, text="Iniciar", command=self.iniciar_proceso, relief="groove", padx=10, pady=5, borderwidth=2)
+        self.boton_iniciar = tk.Button(self.medicion_tab, text="Iniciar", command=self.iniciar_proceso, relief="groove", padx=10, pady=5, borderwidth=2, background="lightgrey")
         self.boton_iniciar.grid(row=2, column=0, columnspan=3, padx=(100,80),  pady=10, stick="w")
 
         # Configuración del botón "Detener"
-        self.boton_detener = tk.Button(self.medicion_tab, text="Detener", command=self.detener_proceso, relief="groove", padx=10, pady=5, borderwidth=2)
+        self.boton_detener = tk.Button(self.medicion_tab, text="Detener", command=self.detener_proceso, relief="groove", padx=10, pady=5, borderwidth=2, background="lightgrey")
         self.boton_detener.grid(row=2, column=0, columnspan=2, sticky="e", padx=5, pady=10)
 
         # Botón "Configuraciones"
@@ -807,14 +807,18 @@ class ProcesadorArchivos:
 
     def iniciar_proceso(self):
         # Inicia un hilo para ejecutar el procesamiento en segundo plano
+        self.boton_iniciar.configure(state="disabled", background="#00F61A")
+        self.boton_detener.configure(state="normal", background="lightgrey")
         self.ejecutar=True
         Thread(target=self.procesar_archivos_continuamente).start()
 
     def detener_proceso(self):
         try:
+            self.boton_iniciar.configure(state="normal", background="lightgrey")
+            self.boton_detener.configure(state="disabled", background="#FF7474")
             # Detiene el hilo de procesamiento
             self.ejecutar = False
-            messagebox.showinfo("Proceso detenido", "El proceso ha sido detenido exitosamente.")
+            #messagebox.showinfo("Proceso detenido", "El proceso ha sido detenido exitosamente.")
         except Exception as e:
             messagebox.showerror("Error al detener el proceso", f"Error: {str(e)}")
 
