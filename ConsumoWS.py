@@ -254,7 +254,7 @@ class ProcesadorArchivos:
         #button_frame.grid(row=2, column=4, columnspan=2, pady=10)
 
         # Configuración del botón "Iniciar"
-        self.boton_iniciar = tk.Button(self.medicion_tab, text="Iniciar", command=self.iniciar_proceso, relief="groove", padx= 10, pady=5, borderwidth=3, width=10, background="#3C93FF")
+        self.boton_iniciar = tk.Button(self.medicion_tab, text="Iniciar", command=self.iniciar_proceso, relief="groove", padx= 10, pady=5, borderwidth=3, width=10, background="lightgrey")
         self.boton_iniciar.grid(row=0, column=2, columnspan=3, padx=(85,55),  pady=10, stick="w")
 
         # Configuración del botón "Detener"
@@ -454,7 +454,7 @@ class ProcesadorArchivos:
                             self.error=False
                             self.json_response = self.response.json()
                             #print("Solicitud exitosa (JSON):", json_response)
-                            print("El dato se envió correctamente al WS")
+                            #print("El dato se envió correctamente al WS")
                             self.envio_exitoso += 1
                             self.tree.tag_configure('verde', background='lightgreen')
                             self.tree.item(self.item_id, tags=('verde',))
@@ -464,11 +464,11 @@ class ProcesadorArchivos:
                                 # Intenta analizar la respuesta como XML
                                 xml_response = ET.fromstring(self.response.text)
                                 # print("Solicitud exitosa (XML):", ET.dump(xml_response))
-                                print("La imagen se envió correctamente al WS")
+                                #print("La imagen se envió correctamente al WS")
                             except ET.ParseError:
                                 messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", self.response.text)
                     else:
-                        print("Error en la solicitud:", self.response.text)
+                        #print("Error en la solicitud:", self.response.text)
                         # Mover el archivo a la carpeta de errores
                         if es_imagen:
                             self.mover_a_carpeta_errores(archivo, es_imagen=True)
@@ -631,7 +631,7 @@ class ProcesadorArchivos:
                     # Cerrar el archivo antes de intentar moverlo
                     os.rename(archivo, nuevo_nombre)
                 self.update_contadores()
-                print(f"Archivo procesado: {archivo}")
+                #print(f"Archivo procesado: {archivo}")
 
 
         except ValueError as ve:
@@ -709,9 +709,9 @@ class ProcesadorArchivos:
                 # Cerrar el archivo antes de intentar moverlo
                 try: 
                     os.rename(ruta_imagen, nuevo_nombre)
-                except:
-                    print("Ya se ha movido el archivo")
-                print(f"Imagen procesada: {ruta_imagen}")
+                except: pass
+                    #print("Ya se ha movido el archivo")
+                #print(f"Imagen procesada: {ruta_imagen}")
 
         except Exception as e:
             messagebox.showerror("Error", f"Error al procesar la imagen:", f"Error: {str(e)}")
@@ -782,6 +782,8 @@ class ProcesadorArchivos:
         fecha = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         self.response_entry.tag_config('warning', foreground="#FA5656")
         self.response_entry.tag_config('ok', foreground="green")
+        self.response_entry.tag_config('image', foreground="blue")
+
         if self.error and es_imagen:
             self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
             self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  {self.response.text}\n", 'warning')
@@ -796,7 +798,7 @@ class ProcesadorArchivos:
             self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
         else:
             self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  La imagen fue enviada exitosamente\n", 'ok')
+            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  La imagen fue enviada exitosamente\n", 'image')
             self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
         self.response_entry.see(tk.END)  # Desplaza la vista al final del texto
         self.tree.yview_moveto(1.0)  # Desplaza la vista hacia el final de la tabla

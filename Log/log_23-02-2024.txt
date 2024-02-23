@@ -51,3 +51,5 @@
 23-02-2024 10:07:52  SKU=12345697675, Respuesta WS:  Los datos fueron enviados exitosamente
 23-02-2024 10:07:57  SKU=12345678845, Respuesta WS:  Los datos fueron enviados exitosamente
 23-02-2024 10:08:01  SKU=2345678, Respuesta WS:  {"message":"15:00006:An invalid value was supplied for Master Units.","localizedMessage":"15:00006:An invalid value was supplied for Master Units."}
+23-02-2024 14:57:49  SKU=1234567, Respuesta WS:  Los datos fueron enviados exitosamente
+23-02-2024 14:57:53  SKU=12345697675, Respuesta WS:  La imagen fue enviada exitosamente
