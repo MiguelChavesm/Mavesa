@@ -10,14 +10,16 @@ from datetime import datetime
 import base64
 import xml.etree.ElementTree as ET
 import time
+import openpyxl
+from cryptography.fernet import Fernet
+from pathlib import Path
 import configparser
 import customtkinter
 from PIL import Image, ImageTk
 
 
-
-
-
+clave_cifrado= b'5eWYhZWF9OBQqiI6k2urPzWBAdj0WZ5lz-m-xGn2mJ4='
+fernet = Fernet(clave_cifrado)
 
 class ProcesadorArchivos:
     def __init__(self, root):
@@ -54,42 +56,53 @@ class ProcesadorArchivos:
         
         # Enlazar evento de teclado para detectar la combinación de teclas
         self.root.bind("<KeyPress>", self.verificar_combinacion_teclas)
+        time.sleep(0.1)
         root.iconbitmap("Icons/logo-montra.ico")
 
 
+#Metodos para configuración del .ini
     def cargar_configuracion(self):
         config = configparser.ConfigParser()
         config.read('config.ini')
         if 'Configuracion' in config:
-            self.token_url.set(config['Configuracion'].get('Token_url', ''))
-            self.api_url.set(config['Configuracion'].get('api_url', ''))
-            self.url_api_image.set(config['Configuracion'].get('url_api_image', ''))
-            self.client_id.set(config['Configuracion'].get('client_id', ''))
-            self.client_secret.set(config['Configuracion'].get('client_secret', ''))
-            self.username.set(config['Configuracion'].get('username', ''))
-            self.password.set(config['Configuracion'].get('password', ''))
-            self.carpeta_archivos.set(config['Configuracion'].get('carpeta_archivos', ''))
-            self.carpeta_imagenes.set(config['Configuracion'].get('carpeta_imagenes', ''))
-            self.contraseña = config['Configuracion'].get('contraseña_adicional', 'MONTRA101') # Obtener la contraseña
-
+            self.token_url.set(self.desencriptar(config['Configuracion'].get('Token_url', '')))
+            self.api_url.set(self.desencriptar(config['Configuracion'].get('api_url', '')))
+            self.url_api_image.set(self.desencriptar(config['Configuracion'].get('url_api_image', '')))
+            self.client_id.set(self.desencriptar(config['Configuracion'].get('client_id', '')))
+            self.client_secret.set(self.desencriptar(config['Configuracion'].get('client_secret', '')))
+            self.username.set(self.desencriptar(config['Configuracion'].get('username', '')))
+            self.password.set(self.desencriptar(config['Configuracion'].get('password', '')))
+            self.carpeta_archivos.set(self.desencriptar(config['Configuracion'].get('carpeta_archivos', '')))
+            self.carpeta_imagenes.set(self.desencriptar(config['Configuracion'].get('carpeta_imagenes', '')))
+            self.contraseña = (self.desencriptar(config['Configuracion'].get('contraseña_adicional', 'MONTRA101')) )# Obtener la contraseña
 
     def guardar_configuracion(self):
         config = configparser.ConfigParser()
         config.read('config.ini')
-        config['Configuracion']['Token_url'] = self.token_url.get()
-        config['Configuracion']['api_url'] = self.api_url.get()
-        config['Configuracion']['url_api_image'] = self.url_api_image.get()
-        config['Configuracion']['client_id'] = self.client_id.get()
-        config['Configuracion']['client_secret'] = self.client_secret.get()
-        config['Configuracion']['username'] = self.username.get()
-        config['Configuracion']['password'] = self.password.get()
-        config['Configuracion']['carpeta_archivos'] = self.carpeta_archivos.get()
-        config['Configuracion']['carpeta_imagenes'] = self.carpeta_imagenes.get()
-        config['Configuracion']['contraseña_adicional'] = self.contraseña
+        config['Configuracion']['Token_url'] = self.encriptar(self.token_url.get())
+        config['Configuracion']['api_url'] = self.encriptar(self.api_url.get())
+        config['Configuracion']['url_api_image'] = self.encriptar(self.url_api_image.get())
+        config['Configuracion']['client_id'] = self.encriptar(self.client_id.get())
+        config['Configuracion']['client_secret'] = self.encriptar(self.client_secret.get())
+        config['Configuracion']['username'] = self.encriptar(self.username.get())
+        config['Configuracion']['password'] = self.encriptar(self.password.get())
+        config['Configuracion']['carpeta_archivos'] = self.encriptar(self.carpeta_archivos.get())
+        config['Configuracion']['carpeta_imagenes'] = self.encriptar(self.carpeta_imagenes.get())
+        config['Configuracion']['contraseña_adicional'] = self.encriptar((self.contraseña))
 
         with open('config.ini', 'w') as configfile:
             config.write(configfile)
 
+    def encriptar(self, valor):
+        # Cifra el valor utilizando la clave de cifrado
+        return fernet.encrypt(valor.encode()).decode()
+
+    def desencriptar(self, valor_cifrado):
+        # Descifra el valor utilizando la clave de cifrado
+        token = valor_cifrado.encode()
+        return fernet.decrypt(token).decode()
+
+#Metodo para cargue de imagenes
     def imagenes(self):
         self.logo_montra = tk.PhotoImage(file="Icons/imagen_1.png")
         self.logo_montra = self.logo_montra.subsample(1, 1)
@@ -99,6 +112,7 @@ class ProcesadorArchivos:
         self.logo_mavesa = tk.PhotoImage(file="Icons/imagen_4.png")
         self.logo_mavesa = self.logo_mavesa.subsample(2, 2)
 
+#Metodo de prueba para ingresar con CTR+ALT+SHIFT+INSERT
     def verificar_combinacion_teclas(self, event):
         if event.keysym == "Insert" and event.state & 4 != 0 and event.state & 1 != 0 and event.state & 8 != 0:
             # Verificar si la pestaña actual es la de configuración y la contraseña no ha sido verificada
@@ -117,6 +131,7 @@ class ProcesadorArchivos:
             # Marcar la contraseña como verificada
             self.contraseña_verificada = True
 
+#Pestaña de ingreso de contraseña
     def abrir_pestana_configuracion(self, event):
         if self.notebook.index("current") == 1 and self.contraseña_verificada:
             self.notebook.select(self.configuracion_tab)
@@ -151,7 +166,6 @@ class ProcesadorArchivos:
             
             self.dialogo_contraseña.iconbitmap("Icons/logo-montra.ico")
 
-
     def restablecer_campos_configuracion(self):
         # Restablecer solo si se cierra la ventana emergente de verificación con la "X"
         if self.dialogo_contraseña:
@@ -184,7 +198,8 @@ class ProcesadorArchivos:
             # Limpiar el campo de contraseña
             self.entrada_contraseña.delete(0, tk.END)
             self.dialogo_contraseña.destroy()     
-    
+
+#Pestaña para cambio de contraseña
     def abrir_ventana_cambio_contraseña(self):
         # Ventana emergente para cambiar la contraseña
         cambio_contraseña_window = tk.Toplevel(self.root)
@@ -204,7 +219,6 @@ class ProcesadorArchivos:
         
         cambio_contraseña_window.iconbitmap("Icons/logo-montra.ico")
 
-        
     def guardar_nueva_contraseña(self, contraseña_actual, nueva_contraseña, window):
         if contraseña_actual != self.contraseña:
             messagebox.showerror("Error", "La contraseña actual es incorrecta.")
@@ -215,7 +229,7 @@ class ProcesadorArchivos:
                 window.destroy()
                 self.guardar_configuracion()  # Guardar la nueva contraseña en el archivo config.ini
 
-
+#Creación de ventanas de interfaz
     def create_medicion_tab(self):
         # Agregar la pestaña de medición al notebook
         self.notebook.add(self.medicion_tab, text="WebService", state="normal")
@@ -303,7 +317,9 @@ class ProcesadorArchivos:
         self.label_envio_fallido.grid(row=8,column=6, sticky="w")
 
     def create_configuracion_tab(self):
-
+        
+        espaciado_lateral=(30,0)
+        
         self.token_url = tk.StringVar()
         # Información de autenticación
         self.api_url = tk.StringVar()
@@ -325,38 +341,38 @@ class ProcesadorArchivos:
         self.carpeta_procesados_img = "Procesados/Images"
         self.carpeta_procesados_img_e = "Procesados/Images/Errores/"
 
+        ttk.Label(self.configuracion_tab, text="AUTENTICACIÓN WEBSERVICE", font=("Helvetica", 13)).grid(row=0, column=0, columnspan=3, pady=(20, 5), sticky="w", padx= espaciado_lateral)
         
-        
-        ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, column=1, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, column=1, pady=5, sticky="w", padx= espaciado_lateral)
         url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.api_url,  width=45)
         url_entry.grid(row=1, column=2, pady=5, sticky="w")
         
-        ttk.Label(self.configuracion_tab, text="URL Imagen:").grid(row=2, column=1, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="URL Imagen:").grid(row=2, column=1, pady=5, sticky="w", padx= espaciado_lateral)
         url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_api_image,  width=45)
         url_entry.grid(row=2, column=2, pady=5, sticky="w")
         
-        ttk.Label(self.configuracion_tab, text="Client ID:").grid(row=3, column=1, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="Client ID:").grid(row=3, column=1, pady=5, sticky="w", padx= espaciado_lateral)
         client_id_entry = ttk.Entry(self.configuracion_tab, textvariable=self.client_id, width=45)
         client_id_entry.grid(row=3, column=2, pady=5, sticky="w")
 
-        ttk.Label(self.configuracion_tab, text="Client Secret:").grid(row=4, column=1, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="Client Secret:").grid(row=4, column=1, pady=5, sticky="w", padx= espaciado_lateral)
         client_secret_entry = ttk.Entry(self.configuracion_tab, textvariable=self.client_secret, width=45)
         client_secret_entry.grid(row=4, column=2, pady=5, sticky="w")
 
-        ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=5, column=1, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=5, column=1, pady=5, sticky="w", padx= espaciado_lateral)
         username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username, width=45)
         username_entry.grid(row=5, column=2, pady=5, sticky="w")
 
-        ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=6, column=1, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=6, column=1, pady=5, sticky="w", padx= espaciado_lateral)
         password_entry = ttk.Entry(self.configuracion_tab, textvariable=self.password, width=45)
         password_entry.grid(row=6, column=2, pady=5, sticky="w")
 
-        ttk.Label(self.configuracion_tab, text="URL del token:").grid(row=7, column=1, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="URL del token:").grid(row=7, column=1, pady=5, sticky="w", padx= espaciado_lateral)
         token_url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.token_url, width=45)
         token_url_entry.grid(row=7, column=2, pady=5, sticky="w")
 
-        ttk.Label(self.configuracion_tab, text="PROCESAMIENTO DE DATOS", font=("Helvetica", 13)).grid(row=8, column=1, columnspan=3, pady=(20, 5), sticky="w")
-        ttk.Label(self.configuracion_tab, text="Carpeta Origen Data:").grid(row=9, column=1, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="PROCESAMIENTO DE DATOS", font=("Helvetica", 13)).grid(row=8, column=1, columnspan=3, pady=(20, 5), sticky="w", padx= espaciado_lateral)
+        ttk.Label(self.configuracion_tab, text="Carpeta Origen Data:").grid(row=9, column=1, pady=5, sticky="w", padx= espaciado_lateral)
 
         # Mostrar la imagen "folder.png" al lado del campo "Carpeta Origen"
         folder_image = Image.open("Icons/folder.png")
@@ -379,7 +395,7 @@ class ProcesadorArchivos:
         carpeta_origen_entry = ttk.Entry(self.configuracion_tab, textvariable=self.carpeta_archivos, width=40)
         carpeta_origen_entry.grid(row=9, column=2, columnspan=2, pady=5, sticky="w")
 
-        ttk.Label(self.configuracion_tab, text="Carpeta Origen Imagen:").grid(row=10, column=1, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="Carpeta Origen Imagen:").grid(row=10, column=1, pady=5, sticky="w", padx= espaciado_lateral)
 
         # Mostrar la imagen "folder.png" al lado del campo "Carpeta Origen Imagen"
         folder_image = Image.open("Icons/folder.png")
@@ -402,13 +418,13 @@ class ProcesadorArchivos:
 
         
         save_image = customtkinter.CTkImage(Image.open("Icons/save.png").resize((100,100), Image.Resampling.LANCZOS))
-        boton_save = customtkinter.CTkButton(self.configuracion_tab, text="Guardar Configuración", border_color="#AFACAC", border_width=1,   corner_radius=5,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#7DC2DA", width=120, height=20, compound="left", image= save_image, command=self.guardar_configuracion)
+        boton_save = customtkinter.CTkButton(self.configuracion_tab, text="Guardar Configuración", border_color="#AFACAC", border_width=1,   corner_radius=5,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#D9F3FF", width=120, height=20, compound="left", image= save_image, command=self.guardar_configuracion)
         boton_save.grid(row=11, column=2, padx=(10,30), pady=10)
         
         cambiar_contraseña_button = ttk.Button(self.configuracion_tab, text="Cambiar Contraseña", command=self.abrir_ventana_cambio_contraseña)
-        cambiar_contraseña_button.grid(row=12, columnspan=2, padx=10, pady=5)
+        cambiar_contraseña_button.grid(row=12, rowspan=3, columnspan=2, padx=10, pady=25, sticky="s")
 
-
+#Metodo para envío de datos a WebService
     def enviar_data(self, data, url, archivo, es_imagen=False):
             # Verificar conexión a Internet
 
@@ -507,6 +523,7 @@ class ProcesadorArchivos:
         except requests.ConnectionError:
             return False
 
+#Procesamiento de archivos e imagenes
     def mover_a_carpeta_errores(self, archivo, es_imagen=False):
         carpeta_errores = self.carpeta_procesados_data_e if not es_imagen else self.carpeta_procesados_img_e
         carpeta_errores = os.path.join(carpeta_errores)
@@ -579,6 +596,8 @@ class ProcesadorArchivos:
                     self.item_id=self.tree.insert('', 'end', values=(SKU, Packtype, Tipodepaquete, Cantidad ,Largo, Ancho, Alto, Peso, fecha))
                     self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
                     self.actualizar_log(SKU, es_imagen=False)
+                    # Exportar datos a Excel
+                    self.exportar_excel(SKU, Packtype, Tipodepaquete, Cantidad, Largo, Ancho, Alto, Peso, fecha)
                 elif Packtype == "Caja-UOM1" or Packtype == "Caja2-UOM1" or Packtype == "Caja3-UOM1":
                     data = {
                         "packkey": f"{SKU}_{Cantidad}",
@@ -600,6 +619,8 @@ class ProcesadorArchivos:
                     self.item_id=self.tree.insert('', 'end', values=(SKU, Packtype, Tipodepaquete, Cantidad ,Largo, Ancho, Alto, Peso, fecha))
                     self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
                     self.actualizar_log(SKU, es_imagen=False)
+                    self.exportar_excel(SKU, Packtype, Tipodepaquete, Cantidad, Largo, Ancho, Alto, Peso, fecha)
+
             
                 if not self.error:
                     carpeta_procesados_data = os.path.join(self.carpeta_procesados_data)
@@ -696,30 +717,6 @@ class ProcesadorArchivos:
         except Exception as e:
             messagebox.showerror("Error", f"Error al procesar la imagen:", f"Error: {str(e)}")
 
-    def actualizar_log(self, SKU, es_imagen=False):
-        fecha = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-        self.response_entry.tag_config('warning', foreground="#FA5656")
-        self.response_entry.tag_config('ok', foreground="green")
-        if self.error and es_imagen:
-            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  {self.response.text}\n", 'warning')
-            self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
-        elif self.error and not es_imagen:
-            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  {self.response.text}\n", 'warning')
-            self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
-        elif not self.error and not es_imagen:
-            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  Los datos fueron enviados exitosamente\n", 'ok')
-            self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
-        else:
-            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  La imagen fue enviada exitosamente\n", 'ok')
-            self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
-        self.response_entry.see(tk.END)  # Desplaza la vista al final del texto
-        self.tree.yview_moveto(1.0)  # Desplaza la vista hacia el final de la tabla
-
-
     def obtener_archivo_mas_antiguo(self, carpeta, extension=None, es_imagen=False):
         time.sleep(1)
         archivos = [f for f in os.listdir(carpeta) if f.endswith(extension)] if extension else os.listdir(carpeta)
@@ -762,8 +759,6 @@ class ProcesadorArchivos:
         else:
             return None
 
-
-    # Ajustes en el método procesar_archivos_continuamente
     def procesar_archivos_continuamente(self):
         while self.ejecutar:
             try: 
@@ -779,9 +774,72 @@ class ProcesadorArchivos:
                     self.procesar_imagen(archivo_img)
             except: pass
 
+#Actualización de interfaz
     def update_contadores(self):
         self.label_envio_exitoso.config(text=f"Envíos exitosos: {self.envio_exitoso}")
         self.label_envio_fallido.config(text=f"Envíos fallidos: {self.envio_fallido}")
+
+    def actualizar_log(self, SKU, es_imagen=False):
+        fecha = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        self.response_entry.tag_config('warning', foreground="#FA5656")
+        self.response_entry.tag_config('ok', foreground="green")
+        if self.error and es_imagen:
+            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  {self.response.text}\n", 'warning')
+            self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
+        elif self.error and not es_imagen:
+            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  {self.response.text}\n", 'warning')
+            self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
+        elif not self.error and not es_imagen:
+            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  Los datos fueron enviados exitosamente\n", 'ok')
+            self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
+        else:
+            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  La imagen fue enviada exitosamente\n", 'ok')
+            self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
+        self.response_entry.see(tk.END)  # Desplaza la vista al final del texto
+        self.tree.yview_moveto(1.0)  # Desplaza la vista hacia el final de la tabla
+
+    def exportar_excel(self, SKU, Packtype, Tipodepaquete, Cantidad, Largo, Ancho, Alto, Peso, fecha):
+        self.ruta_exportacion = ""
+        fecha_actual = datetime.now().strftime("%d-%m-%Y")
+
+        # Configurar la carpeta de destino predeterminada
+        default_folder = "Export"
+
+        # Usar la carpeta predeterminada si self.ruta_exportacion está vacía
+        if not self.ruta_exportacion or not Path(self.ruta_exportacion).exists() or not Path(self.ruta_exportacion).is_dir():
+            self.ruta_destino = Path(default_folder)
+            if not self.ruta_destino.exists():
+                os.makedirs(self.ruta_destino)
+        else:
+            self.ruta_destino = Path(self.ruta_exportacion)
+
+        # Corregir el nombre de la variable
+        nombre_archivo = f"CubiScan_{fecha_actual}.xlsx"
+        ruta_completa = self.ruta_destino / nombre_archivo
+
+        # Verificar si el archivo ya existe
+        if ruta_completa.exists():
+            workbook = openpyxl.load_workbook(ruta_completa)
+            worksheet = workbook.active
+        else:
+            workbook = openpyxl.Workbook()
+            worksheet = workbook.active
+            worksheet.title = "Medidas"
+            # Encabezados
+            encabezados = ["SKU", "Packtype", "Tipodepaquete", "Cantidad", "Largo", "Ancho", "Alto", "Peso", "Fecha"]
+            for col_num, encabezado in enumerate(encabezados, 1):
+                worksheet.cell(row=1, column=col_num, value=encabezado)
+
+        # Agregar nueva fila
+        nueva_fila = [SKU, Packtype, Tipodepaquete, Cantidad, Largo, Ancho, Alto, Peso, fecha]
+        worksheet.append(nueva_fila)
+
+        # Guardar el archivo Excel
+        workbook.save(ruta_completa)
 
     def exportar_log(self):
         # Obtener la fecha actual en formato %d-%m-%Y
@@ -798,12 +856,11 @@ class ProcesadorArchivos:
         if os.path.exists(file_path):
             with open(file_path, "a") as file:
                 # Agregar nueva línea y el texto actual
-                file.write("\n" + text_to_export)
+                file.write(text_to_export)
         else:
             # Si el archivo no existe, crear uno nuevo
             with open(file_path, "w") as file:
                 file.write(text_to_export)
-
 
     def iniciar_proceso(self):
         # Inicia un hilo para ejecutar el procesamiento en segundo plano
@@ -826,14 +883,12 @@ class ProcesadorArchivos:
         # Ejecutar la interfaz gráfica
         root.mainloop()
 
-        
     def cerrar_aplicacion(self):
         # Detener el hilo de procesamiento
         self.ejecutar = False
         self.exportar_log()
         # Cerrar la interfaz gráfica
         self.root.destroy()
-
 
 
 if __name__ == "__main__":
