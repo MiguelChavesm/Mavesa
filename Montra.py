@@ -18,52 +18,44 @@ import configparser
 import customtkinter
 from PIL import Image, ImageTk
 
-
-clave_cifrado= b'5eWYhZWF9OBQqiI6k2urPzWBAdj0WZ5lz-m-xGn2mJ4='
+clave_cifrado= b'5eWYhZWF9OBQqiI6k2urPzWBAdj0WZ5lz-m-xGn2mJ4=' #Esta es la clave que utiliza el archivo .ini para encriptarlo y desencriptarlo
 fernet = Fernet(clave_cifrado)
 
 class ProcesadorArchivos:
     def __init__(self, root):
         self.root = root
         self.root.title("MONTRA")
-        self.contraseña_verificada = False
-        self.configuracion_bloqueada = False  # Nuevo: Estado de bloqueo de configuración
-
-        self.direcciones_mac_permitidas = ["4C-44-5B-95-52-85", "BC-F1-71-F3-5F-60", "30-05-05-B8-BB-35", "30-05-05-B8-B4-69"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
-
+        self.contraseña_verificada = False    #Estado de contraseña verificada o no
+        self.configuracion_bloqueada = False  #Estado de bloqueo de configuración
+        self.direcciones_mac_permitidas = ["4C-44-5B-95-52-82", "BC-F1-71-F3-5F-60", "30-05-05-B8-BB-35", "30-05-05-B8-B4-69", "AC-1A-3D-11-17-2E"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
+        
         # Contadores para envío exitoso y fallido
         self.envio_exitoso = 0
         self.envio_fallido = 0
-
+        #Creación de la ventana
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill="both", expand=True)
         self.medicion_tab = ttk.Frame(self.notebook)
         self.configuracion_tab = ttk.Frame(self.notebook)
-
         self.notebook.add(self.medicion_tab, text="WebService", state="normal")
         self.notebook.add(self.configuracion_tab, text="Configuración", state="disabled")
+        self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion) #Metodo que cierra todos los procesos al cerrar la app.
 
-        self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
+        self.imagenes() #Metodo para cargar las imagenes
+        self.create_medicion_tab() #Metodo para cargar la pestaña de medición
+        self.create_configuracion_tab() #Metodo para cargar la pestaña de configuración
+        self.cargar_configuracion() #Metodo para cargar el archivo .ini
 
-        self.imagenes()
-        self.create_medicion_tab()
-        self.create_configuracion_tab()
-        self.cargar_configuracion()
-
-        # Configurar evento para abrir la pestaña de configuración
-        #self.notebook.bind("<<NotebookTabChanged>>", self.abrir_pestana_configuracion)
+        self.ejecutar = True   # Variable para controlar la ejecución del programa
+        self.error=False  # Variable para controlar si hay algun error en el programa
         
-        # Variable para controlar la ejecución del programa
-        self.ejecutar = True
-        self.error=False
-        
-        # Programar la carga del icono después de 100 milisegundos (ajusta según sea necesario)
-        self.root.after(10, self.cargar_icono)
+        self.root.after(10, self.cargar_icono)  # Programar la carga del icono después de 10 milisegundos
     
 #Metodo para cargar el icono para que al ejecutar el programa no se vea un salto de ventanas
     def cargar_icono(self):
         self.root.iconbitmap("Icons/logo-montra.ico")
 
+#Metodo para cerrar la aplicación correctamente.
     def cerrar_aplicacion(self):
         # Detener el hilo de procesamiento
         self.ejecutar = False
@@ -72,7 +64,7 @@ class ProcesadorArchivos:
         self.root.destroy()
 
 #VERIFICACIÓN DE MAC
-    #Obtener mac_address
+    # Metodo para Obtener mac_address
     def get_mac_address(self):
         mac = uuid.UUID(int=uuid.getnode()).hex[-12:]
         formatted_mac = ':'.join([mac[i:i+2] for i in range(0, 12, 2)])
@@ -80,7 +72,8 @@ class ProcesadorArchivos:
         formatted_mac = formatted_mac.replace(":", "-")
         return formatted_mac
 
-#Metodos para configuración del .ini
+#METODOS DE CONFIGURACIÓN .INI
+    #Metodo para cargar la configuración .ini
     def cargar_configuracion(self):
         mac_actual = self.get_mac_address()  # Usa el método de obtener_mac() definido
         if mac_actual in self.direcciones_mac_permitidas:
@@ -103,6 +96,7 @@ class ProcesadorArchivos:
             self.cerrar_aplicacion()
             #root.destroy()  # Cierra la aplicación
     
+    #Metodo para guardar los datos de la configuración .ini
     def guardar_configuracion(self):
         config = configparser.ConfigParser()
         config.read('config.ini')
@@ -119,17 +113,17 @@ class ProcesadorArchivos:
 
         with open('config.ini', 'w') as configfile:
             config.write(configfile)
-
+    
+    #Metodo que encripta los datos con la clave de cifrado
     def encriptar(self, valor):
-        # Cifra el valor utilizando la clave de cifrado
         return fernet.encrypt(valor.encode()).decode()
-
+    
+    #Metodo que desencripta datos con la clave de cifrado
     def desencriptar(self, valor_cifrado):
-        # Descifra el valor utilizando la clave de cifrado
         token = valor_cifrado.encode()
         return fernet.decrypt(token).decode()
 
-#Metodo para cargue de imagenes
+    #Metodo para cargue de imagenes
     def imagenes(self):
         self.logo_montra = tk.PhotoImage(file="Icons/imagen_1.png")
         self.logo_montra = self.logo_montra.subsample(1, 1)
@@ -139,10 +133,10 @@ class ProcesadorArchivos:
         self.logo_mavesa = tk.PhotoImage(file="Icons/imagen_4.png")
         self.logo_mavesa = self.logo_mavesa.subsample(2, 2)
 
-#Pestaña de ingreso de contraseña
+#METODOS PARA INGRESO POR CONTRASEÑA
+    #Pestaña de ingreso de contraseña
     def abrir_pestana_configuraciones(self):
         if not self.contraseña_verificada:
-        # Establecer la pestaña actual en la de configuración
             self.notebook.select(self.configuracion_tab)
             self.dialogo_contraseña = tk.Toplevel()
             self.dialogo_contraseña.title("Acceso")
@@ -170,6 +164,7 @@ class ProcesadorArchivos:
                     child.config(state="disabled")
             self.dialogo_contraseña.iconbitmap("Icons/logo-montra.ico")
 
+    #Metodo para que la pestaña de configuración permanezca inactiva si no se puso la clave
     def restablecer_campos_configuracion(self):
         # Restablecer solo si se cierra la ventana emergente de verificación con la "X"
         if self.dialogo_contraseña:
@@ -186,8 +181,8 @@ class ProcesadorArchivos:
             else:
                 self.configuracion_bloqueada = False  # Si se cierra la ventana de configuración desde la pestaña de medición
 
+    #Meotdo para verificar si la contraseña ingresada es la almacenada
     def verificar_contraseña(self):
-        # Verifica si la contraseña ingresada es correcta
         contraseña_ingresada = self.entrada_contraseña.get()
         if contraseña_ingresada == self.contraseña:
             self.notebook.tab(1, state="normal")  # Habilita la pestaña de configuración
@@ -201,9 +196,8 @@ class ProcesadorArchivos:
             self.entrada_contraseña.delete(0, tk.END)
             self.dialogo_contraseña.destroy() 
             messagebox.showerror("Error", "Contraseña incorrecta")
-            # Limpiar el campo de contraseña
 
-#Pestaña para cambio de contraseña
+    #Metodo para cambio de contraseña
     def abrir_ventana_cambio_contraseña(self):
         # Ventana emergente para cambiar la contraseña
         cambio_contraseña_window = tk.Toplevel(self.root)
@@ -223,6 +217,7 @@ class ProcesadorArchivos:
         
         cambio_contraseña_window.iconbitmap("Icons/logo-montra.ico")
 
+    #Metodo para guardar la nueva contraseña
     def guardar_nueva_contraseña(self, contraseña_actual, nueva_contraseña, window):
         if contraseña_actual != self.contraseña:
             messagebox.showerror("Error", "La contraseña actual es incorrecta.")
@@ -235,6 +230,7 @@ class ProcesadorArchivos:
                 self.guardar_configuracion()  # Guardar la nueva contraseña en el archivo config.ini
 
 #Creación de ventanas de interfaz
+    #Creación de ventana principal
     def create_medicion_tab(self):
         # Agregar la pestaña de medición al notebook
         self.notebook.add(self.medicion_tab, text="WebService", state="normal")
@@ -309,6 +305,7 @@ class ProcesadorArchivos:
         self.label_envio_fallido = ttk.Label(self.medicion_tab, text="Envíos fallidos: 0", foreground="red")
         self.label_envio_fallido.grid(row=8, column=19, rowspan=2, columnspan=2, padx=(0,0), sticky="w")
 
+    #Creación de ventana de configuración
     def create_configuracion_tab(self):
         
         espaciado_lateral=(30,0)
@@ -372,8 +369,6 @@ class ProcesadorArchivos:
         folder_image = folder_image.resize((20, 20))  # Redimensiona la imagen
         folder_icon = ImageTk.PhotoImage(folder_image)
         
-        
-        
         # Asignar la función seleccionar_carpeta al evento de clic del botón
         def seleccionar_carpeta():
             selected_folder = filedialog.askdirectory()
@@ -415,9 +410,9 @@ class ProcesadorArchivos:
         boton_save.grid(row=11, column=2, padx=(10,30), pady=10)
         
         cambiar_contraseña_button = ttk.Button(self.configuracion_tab, text="Cambiar Contraseña", command=self.abrir_ventana_cambio_contraseña)
-        cambiar_contraseña_button.grid(row=12, rowspan=3, columnspan=2, padx=10, pady=25, sticky="s")
+        cambiar_contraseña_button.grid(row=12, rowspan=3, columnspan=2, padx=10, pady=(10,5), sticky="s")
 
-#Metodo para envío de datos a WebService
+#METODO PARA ENVIAR EL JSON DE DATOS Y ENVIARLO AL WEBSERVICE
     def enviar_data(self, data, url, archivo, es_imagen=False):
             # Verificar conexión a Internet
 
@@ -504,6 +499,7 @@ class ProcesadorArchivos:
             else: 
                 self.mover_a_carpeta_errores(archivo, es_imagen=False)
 
+    #Metodo para verificar si hay internet
     def verificar_conexion(self):
         try:
             # Intentar hacer una solicitud a un sitio web conocido
@@ -513,6 +509,7 @@ class ProcesadorArchivos:
             return False
 
 #Procesamiento de archivos e imagenes
+    #Metodo para mover errores a carpeta predeterminada
     def mover_a_carpeta_errores(self, archivo, es_imagen=False):
         carpeta_errores = self.carpeta_procesados_data_e if not es_imagen else self.carpeta_procesados_img_e
         carpeta_errores = os.path.join(carpeta_errores)
@@ -525,6 +522,7 @@ class ProcesadorArchivos:
             os.rename(archivo, archivo_con_error)
         except: pass
 
+    #Metodo para procesar archivo TXT
     def procesar_archivo(self, archivo):
 
         if not self.verificar_conexion():
@@ -640,7 +638,8 @@ class ProcesadorArchivos:
                 os.remove(nuevo_nombre_error)
             
             os.rename(archivo, nuevo_nombre_error)
-
+    
+    #Metodo para procesar archivo JPG
     def procesar_imagen(self, ruta_imagen):
         try:
             
@@ -714,6 +713,7 @@ class ProcesadorArchivos:
         except Exception as e:
             messagebox.showerror("Error", f"Error al procesar la imagen:", f"Error: {str(e)}")
 
+    #Metodo para que siempre tome el archivo mas antiguo de la lista
     def obtener_archivo_mas_antiguo(self, carpeta, extension=None, es_imagen=False):
         time.sleep(0.5)
         archivos = [f for f in os.listdir(carpeta) if f.endswith(extension)] if extension else os.listdir(carpeta)
@@ -759,6 +759,7 @@ class ProcesadorArchivos:
         else:
             return None
 
+    #Metodo para que contantemente esté tomando archivos si los hay
     def procesar_archivos_continuamente(self):
         while self.ejecutar:
             try: 
@@ -775,10 +776,12 @@ class ProcesadorArchivos:
             except: pass
 
 #Actualización de interfaz
+    #Actualizar contadores de envios exitosos y erroneos
     def update_contadores(self):
         self.label_envio_exitoso.config(text=f"Envíos exitosos: {self.envio_exitoso}")
         self.label_envio_fallido.config(text=f"Envíos fallidos: {self.envio_fallido}")
 
+    #Actualizar el campo de respuesta
     def actualizar_log(self, SKU, es_imagen=False):
         fecha = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         self.response_entry.tag_config('warning', foreground="#FA5656")
@@ -804,6 +807,7 @@ class ProcesadorArchivos:
         self.response_entry.see(tk.END)  # Desplaza la vista al final del texto
         self.tree.yview_moveto(1.0)  # Desplaza la vista hacia el final de la tabla
 
+    #Exportar el excel con los datos medidos
     def exportar_excel(self, SKU, Packtype, Tipodepaquete, Cantidad, Largo, Ancho, Alto, Peso, fecha):
         self.ruta_exportacion = ""
         fecha_actual = datetime.now().strftime("%d-%m-%Y")
@@ -843,6 +847,7 @@ class ProcesadorArchivos:
         # Guardar el archivo Excel
         workbook.save(ruta_completa)
 
+    #Exportar lo almacenado en el campo de respuestas
     def exportar_log(self):
         # Obtener la fecha actual en formato %d-%m-%Y
         fecha_actual = datetime.now().strftime("%d-%m-%Y")
@@ -870,6 +875,7 @@ class ProcesadorArchivos:
             with open(file_path, "w") as file:
                 file.write(text_to_export)
 
+#METODOS PARA INICIAR Y DETENER EL PROCESAMIENTO DE DATOS
     def iniciar_proceso(self):
         # Inicia un hilo para ejecutar el procesamiento en segundo plano
         self.boton_iniciar.configure(state="disabled", fg_color="#2DE524")
