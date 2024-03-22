@@ -419,8 +419,7 @@ class ProcesadorArchivos:
 
 #Metodo para envío de datos a WebService
     def enviar_data(self, data, url, archivo, es_imagen=False):
-            # Verificar conexión a Internet
-
+        # Verificar conexión a Internet
         try:
             # Obtener token de acceso
             token_response = requests.post(
@@ -441,34 +440,44 @@ class ProcesadorArchivos:
                         "Authorization": f"Bearer {access_token}",
                         "Content-Type": "application/json"
                     }
-                    self.response = requests.post(url, json=data, headers=headers)
-
-                    if self.response.status_code == 200:
-                        try:
-                            self.error=False
-                            self.json_response = self.response.json()
-                            self.envio_exitoso += 1
-                            self.tree.tag_configure('verde', background='lightgreen')
-                            self.tree.item(self.item_id, tags=('verde',))
-                        except requests.exceptions.JSONDecodeError:
+                    retry_attempts = 2
+                    print(retry_attempts)
+                    while retry_attempts > 0:
+                        self.response = requests.post(url, json=data, headers=headers)
+                        print("entre aca")
+                        print(self.response.status_code)
+                        if self.response.status_code == 200:
                             try:
                                 self.error=False
-                                # Intenta analizar la respuesta como XML
-                                xml_response = ET.fromstring(self.response.text)
-
-                            except ET.ParseError:
-                                messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", self.response.text)
-                    else:
-                        # Mover el archivo a la carpeta de errores
-                        if es_imagen:
-                            self.mover_a_carpeta_errores(archivo, es_imagen=True)
-                        else: 
-                            self.mover_a_carpeta_errores(archivo, es_imagen=False)
-                            self.envio_fallido += 1
-                            self.tree.tag_configure('rojo', background='#FA5656')
-                            self.tree.item(self.item_id, tags=('rojo',))
-
-                    # Incrementar el contador de envíos exitosos
+                                self.json_response = self.response.json()
+                                self.envio_exitoso += 1
+                                self.tree.tag_configure('verde', background='lightgreen')
+                                self.tree.item(self.item_id, tags=('verde',))
+                                break  # Salir del bucle si la solicitud es exitosa
+                            except requests.exceptions.JSONDecodeError:
+                                try:
+                                    self.error=False
+                                    # Intenta analizar la respuesta como XML
+                                    xml_response = ET.fromstring(self.response.text)
+                                    break
+                                except ET.ParseError:
+                                    messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", self.response.text)
+                        else:
+                            # Reducir el número de intentos
+                            retry_attempts -= 1
+                            print(f'Entre acá{retry_attempts}')  
+                            time.sleep(2)
+                            if retry_attempts == 0:
+                                print(retry_attempts)
+                                # Mover el archivo a la carpeta de errores solo si ya se agotaron los intentos
+                                if es_imagen:
+                                    self.mover_a_carpeta_errores(archivo, es_imagen=True)
+                                else: 
+                                    self.mover_a_carpeta_errores(archivo, es_imagen=False)
+                                self.envio_fallido += 1
+                                self.tree.tag_configure('rojo', background='#FA5656')
+                                self.tree.item(self.item_id, tags=('rojo',))
+                                break
                 else:
                     self.error=True
                     messagebox.showerror(f"No se pudo obtener el token de acceso")
@@ -480,7 +489,6 @@ class ProcesadorArchivos:
                         self.envio_fallido += 1
                         self.tree.tag_configure('rojo', background='#FA5656')
                         self.tree.item(self.item_id, tags=('rojo',))
-
             else:
                 self.error=True
                 messagebox.showerror(f"Error al obtener el token de acceso:", token_response.text)
@@ -503,7 +511,7 @@ class ProcesadorArchivos:
                 self.mover_a_carpeta_errores(archivo, es_imagen=True)
             else: 
                 self.mover_a_carpeta_errores(archivo, es_imagen=False)
-
+    
     def verificar_conexion(self):
         try:
             # Intentar hacer una solicitud a un sitio web conocido
@@ -580,7 +588,7 @@ class ProcesadorArchivos:
                         "ext_udf_str1": SKU,
                         "ext_udf_str2": Tipodepaquete
                     }
-                    #print(data)
+                    print(data)
                     f.close()
                     self.item_id=self.tree.insert('', 'end', values=(SKU, Packtype, Tipodepaquete, Cantidad ,Largo, Ancho, Alto, Peso, fecha))
                     self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)

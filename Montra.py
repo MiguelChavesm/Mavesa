@@ -27,7 +27,7 @@ class ProcesadorArchivos:
         self.root.title("MONTRA")
         self.contraseña_verificada = False    #Estado de contraseña verificada o no
         self.configuracion_bloqueada = False  #Estado de bloqueo de configuración
-        self.direcciones_mac_permitidas = ["4C-44-5B-95-52-82", "BC-F1-71-F3-5F-60", "30-05-05-B8-BB-35", "30-05-05-B8-B4-69", "AC-1A-3D-11-17-2E"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
+        self.direcciones_mac_permitidas = ["B4-D5-BD-E8-AA-1C", "D8-EB-97-B8-7A-BB", "4C-44-5B-95-52-82","50-EB-71-D4-BB-70","52-EB-71-D4-BB-6F","50-EB-71-D4-BB-73", "BC-F1-71-F3-5F-60", "30-05-05-B8-BB-35", "30-05-05-B8-B4-69", "AC-1A-3D-11-17-2E", "6C-24-08-CB-BC-94", "BC-F1-71-F3-5F-5D", "BE-F1-71-F3-5F-5C", "BC-F1-71-F3-5F-5C"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
         
         # Contadores para envío exitoso y fallido
         self.envio_exitoso = 0
@@ -266,7 +266,7 @@ class ProcesadorArchivos:
         boton_configuraciones.grid(row=8, column=20, sticky="ne")
 
         # Crear la tabla para mostrar los datos
-        columns = ('SKU', 'PackType' ,'UOM' , 'CNT', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha')
+        columns = ('SKU', 'PackType' ,'UOM' , 'Cajas', 'Inner', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha')
         self.tree = ttk.Treeview(self.medicion_tab, columns=columns, show='headings')
 
         for col in columns:
@@ -274,7 +274,8 @@ class ProcesadorArchivos:
             self.tree.column('SKU', width=150)
             self.tree.column('PackType', width=80)
             self.tree.column('UOM', width=50)
-            self.tree.column('CNT', width=40)
+            self.tree.column('Cajas', width=40)
+            self.tree.column('Inner', width=40)
             self.tree.column('Largo', width=50)
             self.tree.column('Ancho', width=50)
             self.tree.column('Alto', width=50)
@@ -413,9 +414,8 @@ class ProcesadorArchivos:
         cambiar_contraseña_button.grid(row=12, rowspan=3, columnspan=2, padx=10, pady=(10,5), sticky="s")
 
 #METODO PARA ENVIAR EL JSON DE DATOS Y ENVIARLO AL WEBSERVICE
+#Metodo para envío de datos a WebService
     def enviar_data(self, data, url, archivo, es_imagen=False):
-            # Verificar conexión a Internet
-
         try:
             # Obtener token de acceso
             token_response = requests.post(
@@ -436,34 +436,39 @@ class ProcesadorArchivos:
                         "Authorization": f"Bearer {access_token}",
                         "Content-Type": "application/json"
                     }
-                    self.response = requests.post(url, json=data, headers=headers)
-
-                    if self.response.status_code == 200:
-                        try:
-                            self.error=False
-                            self.json_response = self.response.json()
-                            self.envio_exitoso += 1
-                            self.tree.tag_configure('verde', background='lightgreen')
-                            self.tree.item(self.item_id, tags=('verde',))
-                        except requests.exceptions.JSONDecodeError:
+                    retry_attempts = 2
+                    while retry_attempts > 0:
+                        self.response = requests.post(url, json=data, headers=headers)
+                        if self.response.status_code == 200:
                             try:
                                 self.error=False
-                                # Intenta analizar la respuesta como XML
-                                xml_response = ET.fromstring(self.response.text)
-
-                            except ET.ParseError:
-                                messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", self.response.text)
-                    else:
-                        # Mover el archivo a la carpeta de errores
-                        if es_imagen:
-                            self.mover_a_carpeta_errores(archivo, es_imagen=True)
-                        else: 
-                            self.mover_a_carpeta_errores(archivo, es_imagen=False)
-                            self.envio_fallido += 1
-                            self.tree.tag_configure('rojo', background='#FA5656')
-                            self.tree.item(self.item_id, tags=('rojo',))
-
-                    # Incrementar el contador de envíos exitosos
+                                self.json_response = self.response.json()
+                                self.envio_exitoso += 1
+                                self.tree.tag_configure('verde', background='lightgreen')
+                                self.tree.item(self.item_id, tags=('verde',))
+                                break  # Salir del bucle si la solicitud es exitosa
+                            except requests.exceptions.JSONDecodeError:
+                                try:
+                                    self.error=False
+                                    # Intenta analizar la respuesta como XML
+                                    xml_response = ET.fromstring(self.response.text)
+                                    break
+                                except ET.ParseError:
+                                    messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", self.response.text)
+                        else:
+                            # Reducir el número de intentos
+                            retry_attempts -= 1
+                            time.sleep(2)
+                            if retry_attempts == 0:
+                                # Mover el archivo a la carpeta de errores solo si ya se agotaron los intentos
+                                if es_imagen:
+                                    self.mover_a_carpeta_errores(archivo, es_imagen=True)
+                                else: 
+                                    self.mover_a_carpeta_errores(archivo, es_imagen=False)
+                                self.envio_fallido += 1
+                                self.tree.tag_configure('rojo', background='#FA5656')
+                                self.tree.item(self.item_id, tags=('rojo',))
+                                break
                 else:
                     self.error=True
                     messagebox.showerror(f"No se pudo obtener el token de acceso")
@@ -475,7 +480,6 @@ class ProcesadorArchivos:
                         self.envio_fallido += 1
                         self.tree.tag_configure('rojo', background='#FA5656')
                         self.tree.item(self.item_id, tags=('rojo',))
-
             else:
                 self.error=True
                 messagebox.showerror(f"Error al obtener el token de acceso:", token_response.text)
@@ -543,23 +547,34 @@ class ProcesadorArchivos:
                 line = f.readline().strip()
                 datos = line.split("|")
 
-                if len(datos) != 9:
+                if len(datos) != 10:
                     raise ValueError("La estructura del archivo no es válida")
 
-
-                SKU, Packtype, Tipodepaquete, Cantidad, Largo, Ancho, Alto, Peso, Descripcion = datos
+                SKU, Packtype, Tipodepaquete, Cantidad, CantidadInner, Largo, Ancho, Alto, Peso, Descripcion = datos
 
                 # Convertir los valores a números (Largo, Ancho, Alto y Peso)
                 Largo = float(Largo)
                 Ancho = float(Ancho)
                 Alto = float(Alto)
                 Peso = float(Peso)
+                Cantidad = int(Cantidad)
+                CantidadInner = int(CantidadInner)
                 fecha = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-
+                packkey = f"{SKU}_{Cantidad}"
+                if Cantidad == 0:
+                    Cantidad=1
+                else: Cantidad=Cantidad
+                
+                if CantidadInner == 0:
+                    CantidadInner=1
+                else: CantidadInner=CantidadInner
+                
+                if CantidadInner>Cantidad:
+                    raise ValueError(f'La cantidad de inner ({CantidadInner}) del articulo {SKU} es mayor a la cantidad de cajas ({Cantidad})')
 
                 if Packtype == "Unidad-UOM3":
                     data = {
-                        "packkey": f"{SKU}_{Cantidad}",
+                        "packkey": packkey,
                         "packdescr": Descripcion,
                         "packuom1": "CJ",
                         "packuom3": Tipodepaquete,
@@ -580,18 +595,16 @@ class ProcesadorArchivos:
                     }
                     #print(data)
                     f.close()
-                    self.item_id=self.tree.insert('', 'end', values=(SKU, Packtype, Tipodepaquete, Cantidad ,Largo, Ancho, Alto, Peso, fecha))
+                    self.item_id=self.tree.insert('', 'end', values=(packkey, Packtype, Tipodepaquete, Cantidad , CantidadInner,Largo, Ancho, Alto, Peso, fecha))
                     self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
-                    self.actualizar_log(SKU, es_imagen=False)
-                    # Exportar datos a Excel
-                    self.exportar_excel(SKU, Packtype, Tipodepaquete, Cantidad, Largo, Ancho, Alto, Peso, fecha)
-                elif Packtype == "Caja-UOM1" or Packtype == "Caja2-UOM1" or Packtype == "Caja3-UOM1":
+                    self.actualizar_log(packkey, es_imagen=False)
+                    self.exportar_excel(packkey, Packtype, Tipodepaquete, Cantidad, CantidadInner, Largo, Ancho, Alto, Peso, fecha)
+                elif Packtype == "Caja-UOM1" or Packtype == "Caja2-UOM1" or Packtype == "Caja3-UOM1" or Packtype == "Caja4-UOM1" or Packtype == "Caja5-UOM1" :
                     data = {
-                        "packkey": f"{SKU}_{Cantidad}",
+                        "packkey": packkey,
                         "packdescr": Descripcion,
                         "packuom1": Tipodepaquete,
                         "casecnt": Cantidad,
-                        "qty": 1,
                         "widthuom1": Ancho,
                         "lengthuom1": Largo,
                         "heightuom1": Alto,
@@ -603,11 +616,31 @@ class ProcesadorArchivos:
                     }
                     #print(data)
                     f.close()
-                    self.item_id=self.tree.insert('', 'end', values=(SKU, Packtype, Tipodepaquete, Cantidad ,Largo, Ancho, Alto, Peso, fecha))
+                    self.item_id=self.tree.insert('', 'end', values=(packkey, Packtype, Tipodepaquete, Cantidad , CantidadInner, Largo, Ancho, Alto, Peso, fecha))
                     self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
-                    self.actualizar_log(SKU, es_imagen=False)
-                    self.exportar_excel(SKU, Packtype, Tipodepaquete, Cantidad, Largo, Ancho, Alto, Peso, fecha)
-
+                    self.actualizar_log(packkey, es_imagen=False)
+                    self.exportar_excel(packkey, Packtype, Tipodepaquete, Cantidad,CantidadInner, Largo, Ancho, Alto, Peso, fecha)
+                elif Packtype == "Subcaja-UOM2":
+                    data = {
+                        "packkey": packkey,
+                        "packdescr": Descripcion,
+                        "packuom2": Tipodepaquete,
+                        "innerpack": CantidadInner,
+                        "widthuom2": Ancho,
+                        "lengthuom2": Largo,
+                        "heightuom2": Alto,
+                        "weightuom2": Peso,
+                        "pallethi": 1,
+                        "palletti": 1,
+                        "ext_udf_str1": SKU,
+                        "ext_udf_str2": Tipodepaquete
+                    }
+                    #print(data)
+                    f.close()
+                    self.item_id=self.tree.insert('', 'end', values=(packkey, Packtype, Tipodepaquete, Cantidad , CantidadInner,Largo, Ancho, Alto, Peso, fecha))
+                    self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
+                    self.actualizar_log(packkey, es_imagen=False)
+                    self.exportar_excel(packkey, Packtype, Tipodepaquete, Cantidad, CantidadInner, Largo, Ancho, Alto, Peso, fecha)
             
                 if not self.error:
                     carpeta_procesados_data = os.path.join(self.carpeta_procesados_data)
@@ -662,9 +695,9 @@ class ProcesadorArchivos:
                 if Propietario=="Mavesa":
                     cod_propietario="0001"
                 elif Propietario=="Internaconsa":
-                    cod_propietario="0002"
-                else:
                     cod_propietario="0005"
+                else:
+                    cod_propietario="0002"
                     
                 # Codificar la imagen en base64
                 img_base64 = base64.b64encode(img_bytes).decode('utf-8')
@@ -722,7 +755,6 @@ class ProcesadorArchivos:
         try:
             for archivo in archivos:
                 if extension == ".jpg" and es_imagen:
-                    print(datetime.strptime(archivo.split("_")[3].replace('.jpg', ''), "%Y%m%d%H%M%S"))
                     datetime.strptime(archivo.split("_")[3].replace('.jpg', ''), "%Y%m%d%H%M%S")
                 elif extension == ".txt" and not es_imagen:
                     datetime.strptime(archivo.split("_")[1].replace('.txt', ''), "%Y%m%d%H%M%S")
@@ -798,17 +830,17 @@ class ProcesadorArchivos:
             self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
         elif not self.error and not es_imagen:
             self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  Los datos fueron enviados exitosamente\n", 'ok')
+            self.response_entry.insert(tk.END, f"{fecha}  packkey={SKU}, Respuesta WS:  Los datos fueron enviados exitosamente\n", 'ok')
             self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
         else:
             self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-            self.response_entry.insert(tk.END, f"{fecha}  SKU={SKU}, Respuesta WS:  La imagen fue enviada exitosamente\n", 'image')
+            self.response_entry.insert(tk.END, f"{fecha}  packkey={SKU}, Respuesta WS:  La imagen fue enviada exitosamente\n", 'image')
             self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
         self.response_entry.see(tk.END)  # Desplaza la vista al final del texto
         self.tree.yview_moveto(1.0)  # Desplaza la vista hacia el final de la tabla
 
     #Exportar el excel con los datos medidos
-    def exportar_excel(self, SKU, Packtype, Tipodepaquete, Cantidad, Largo, Ancho, Alto, Peso, fecha):
+    def exportar_excel(self, SKU, Packtype, Tipodepaquete, Cantidad, CantidadInner, Largo, Ancho, Alto, Peso, fecha):
         self.ruta_exportacion = ""
         fecha_actual = datetime.now().strftime("%d-%m-%Y")
 
@@ -836,12 +868,12 @@ class ProcesadorArchivos:
             worksheet = workbook.active
             worksheet.title = "Medidas"
             # Encabezados
-            encabezados = ["SKU", "Packtype", "Tipodepaquete", "Cantidad", "Largo", "Ancho", "Alto", "Peso", "Fecha"]
+            encabezados = ["SKU", "Packtype", "Tipodepaquete", "Cajas", "Inner","Largo", "Ancho", "Alto", "Peso", "Fecha"]
             for col_num, encabezado in enumerate(encabezados, 1):
                 worksheet.cell(row=1, column=col_num, value=encabezado)
 
         # Agregar nueva fila
-        nueva_fila = [SKU, Packtype, Tipodepaquete, Cantidad, Largo, Ancho, Alto, Peso, fecha]
+        nueva_fila = [SKU, Packtype, Tipodepaquete, Cantidad, CantidadInner,  Largo, Ancho, Alto, Peso, fecha]
         worksheet.append(nueva_fila)
 
         # Guardar el archivo Excel
