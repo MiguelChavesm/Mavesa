@@ -416,92 +416,101 @@ class ProcesadorArchivos:
 #METODO PARA ENVIAR EL JSON DE DATOS Y ENVIARLO AL WEBSERVICE
 #Metodo para envío de datos a WebService
     def enviar_data(self, data, url, archivo, es_imagen=False):
-        try:
-            # Obtener token de acceso
-            token_response = requests.post(
-                self.token_url.get(),
-                auth=HTTPBasicAuth(self.client_id.get(), self.client_secret.get()),
-                data={
-                    "grant_type": "password",
-                    "username": self.username.get(),
-                    "password": self.password.get()
-                }
-            )
+        max_connection_attempts = 3  # Número máximo de intentos de conexión
+        max_request_attempts = 3  # Número máximo de intentos de solicitud
 
-            if token_response.status_code == 200:
-                access_token = token_response.json().get("access_token")
-
-                if access_token:
-                    headers = {
-                        "Authorization": f"Bearer {access_token}",
-                        "Content-Type": "application/json"
+        connection_attempts = 0
+        while connection_attempts < max_connection_attempts:
+            try:
+                # Intentar conexión
+                token_response = requests.post(
+                    self.token_url.get(),
+                    auth=HTTPBasicAuth(self.client_id.get(), self.client_secret.get()),
+                    data={
+                        "grant_type": "password",
+                        "username": self.username.get(),
+                        "password": self.password.get()
                     }
-                    retry_attempts = 2
-                    while retry_attempts > 0:
-                        self.response = requests.post(url, json=data, headers=headers)
-                        if self.response.status_code == 200:
-                            try:
-                                self.error=False
-                                self.json_response = self.response.json()
-                                self.envio_exitoso += 1
-                                self.tree.tag_configure('verde', background='lightgreen')
-                                self.tree.item(self.item_id, tags=('verde',))
-                                break  # Salir del bucle si la solicitud es exitosa
-                            except requests.exceptions.JSONDecodeError:
+                )
+
+                if token_response.status_code == 200:
+                    access_token = token_response.json().get("access_token")
+                    if access_token:
+                        headers = {
+                            "Authorization": f"Bearer {access_token}",
+                            "Content-Type": "application/json"
+                        }
+
+                        request_attempts = 0
+                        while request_attempts < max_request_attempts:
+                            # Intentar enviar la solicitud de datos
+                            self.response = requests.post(url, json=data, headers=headers)
+                            if self.response.status_code == 200:
                                 try:
-                                    self.error=False
-                                    # Intenta analizar la respuesta como XML
-                                    xml_response = ET.fromstring(self.response.text)
-                                    break
-                                except ET.ParseError:
-                                    messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", self.response.text)
+                                    self.error = False
+                                    self.json_response = self.response.json()
+                                    self.envio_exitoso += 1
+                                    self.tree.tag_configure('verde', background='lightgreen')
+                                    self.tree.item(self.item_id, tags=('verde',))
+                                    return  # Salir del método si la solicitud es exitosa
+                                except requests.exceptions.JSONDecodeError:
+                                    try:
+                                        self.error=False
+                                        # Intenta analizar la respuesta como XML
+                                        xml_response = ET.fromstring(self.response.text)
+                                        return  # Salir del método si la solicitud es exitosa
+                                    except ET.ParseError:
+                                        messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", response.text)
+                            time.sleep(1)  # Esperar 1 segundo antes de reintentar
+                            request_attempts += 1
+
+                        # Si se agotaron los intentos de solicitud, mover el archivo a la carpeta de errores
+                        if es_imagen:
+                            self.mover_a_carpeta_errores(archivo, es_imagen=True)
                         else:
-                            # Reducir el número de intentos
-                            retry_attempts -= 1
-                            time.sleep(2)
-                            if retry_attempts == 0:
-                                # Mover el archivo a la carpeta de errores solo si ya se agotaron los intentos
-                                if es_imagen:
-                                    self.mover_a_carpeta_errores(archivo, es_imagen=True)
-                                else: 
-                                    self.mover_a_carpeta_errores(archivo, es_imagen=False)
-                                self.envio_fallido += 1
-                                self.tree.tag_configure('rojo', background='#FA5656')
-                                self.tree.item(self.item_id, tags=('rojo',))
-                                break
-                else:
-                    self.error=True
-                    messagebox.showerror(f"No se pudo obtener el token de acceso")
-                    # Mover el archivo a la carpeta de errores
-                    if es_imagen:
-                        self.mover_a_carpeta_errores(archivo, es_imagen=True)
-                    else: 
-                        self.mover_a_carpeta_errores(archivo, es_imagen=False)
+                            self.mover_a_carpeta_errores(archivo, es_imagen=False)
                         self.envio_fallido += 1
                         self.tree.tag_configure('rojo', background='#FA5656')
                         self.tree.item(self.item_id, tags=('rojo',))
-            else:
-                self.error=True
-                messagebox.showerror(f"Error al obtener el token de acceso:", token_response.text)
-                # Mover el archivo a la carpeta de errores
-                if es_imagen:
-                    self.mover_a_carpeta_errores(archivo, es_imagen=True)
+                        self.update_contadores()
+                        return  # Salir del bucle de conexión si la solicitud falló
+                    else:
+                        # Si no se pudo obtener el token de acceso, mover el archivo a la carpeta de errores
+                        if es_imagen:
+                            self.mover_a_carpeta_errores(archivo, es_imagen=True)
+                        else:
+                            self.mover_a_carpeta_errores(archivo, es_imagen=False)
+                        self.envio_fallido += 1
+                        self.tree.tag_configure('rojo', background='#FA5656')
+                        self.tree.item(self.item_id, tags=('rojo',))
+                        self.update_contadores()
+                        break  # Salir del bucle de conexión si la solicitud falló
                 else:
+                    # Si no se pudo obtener el token de acceso, mover el archivo a la carpeta de errores
+                    if es_imagen:
+                        self.mover_a_carpeta_errores(archivo, es_imagen=True)
+                    else:
+                        self.mover_a_carpeta_errores(archivo, es_imagen=False)
                     self.envio_fallido += 1
                     self.tree.tag_configure('rojo', background='#FA5656')
                     self.tree.item(self.item_id, tags=('rojo',))
-                    self.mover_a_carpeta_errores(archivo, es_imagen=False)
-                
-        except ConnectionError:
-            self.tree.tag_configure('rojo', background='#FA5656')
-            self.tree.item(self.item_id, tags=('rojo',))
-            self.error=True
-            messagebox.showerror("Error de conexión", "No se pudo establecer conexión con el servidor.")
-            # Mover el archivo a la carpeta de errores
-            if es_imagen:
-                self.mover_a_carpeta_errores(archivo, es_imagen=True)
-            else: 
-                self.mover_a_carpeta_errores(archivo, es_imagen=False)
+                    self.update_contadores()
+                    break  # Salir del bucle de conexión si la solicitud falló
+            except ConnectionError:
+                # Si falla la conexión, intentar nuevamente después de un breve retraso
+                time.sleep(1)
+                connection_attempts += 1
+
+        # Si se agotaron los intentos de conexión, mostrar un mensaje de error y mover el archivo a la carpeta de errores
+        self.tree.tag_configure('rojo', background='#FA5656')
+        self.tree.item(self.item_id, tags=('rojo',))
+        self.update_contadores()
+        self.error = True
+        messagebox.showerror("Error de conexión", "No se pudo establecer conexión con el servidor.")
+        if es_imagen:
+            self.mover_a_carpeta_errores(archivo, es_imagen=True)
+        else:
+            self.mover_a_carpeta_errores(archivo, es_imagen=False)
 
     #Metodo para verificar si hay internet
     def verificar_conexion(self):
@@ -560,11 +569,12 @@ class ProcesadorArchivos:
                 Cantidad = int(Cantidad)
                 CantidadInner = int(CantidadInner)
                 fecha = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-                packkey = f"{SKU}_{Cantidad}"
                 if Cantidad == 0:
                     Cantidad=1
                 else: Cantidad=Cantidad
                 
+                packkey = f"{SKU}_{Cantidad}"
+
                 if CantidadInner == 0:
                     CantidadInner=1
                 else: CantidadInner=CantidadInner
@@ -754,6 +764,7 @@ class ProcesadorArchivos:
             return None
         try:
             for archivo in archivos:
+
                 if extension == ".jpg" and es_imagen:
                     datetime.strptime(archivo.split("_")[3].replace('.jpg', ''), "%Y%m%d%H%M%S")
                 elif extension == ".txt" and not es_imagen:
