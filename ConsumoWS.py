@@ -17,6 +17,8 @@ from pathlib import Path
 import configparser
 import customtkinter
 from PIL import Image, ImageTk
+import io  # Agregar esta línea para importar io
+
 
 clave_cifrado= b'5eWYhZWF9OBQqiI6k2urPzWBAdj0WZ5lz-m-xGn2mJ4=' #Esta es la clave que utiliza el archivo .ini para encriptarlo y desencriptarlo
 fernet = Fernet(clave_cifrado)
@@ -416,88 +418,102 @@ class ProcesadorArchivos:
 #METODO PARA ENVIAR EL JSON DE DATOS Y ENVIARLO AL WEBSERVICE
 #Metodo para envío de datos a WebService
     def enviar_data(self, data, url, archivo, es_imagen=False):
-            # Verificar conexión a Internet
-        try:
-            # Obtener token de acceso
-            token_response = requests.post(
-                self.token_url.get(),
-                auth=HTTPBasicAuth(self.client_id.get(), self.client_secret.get()),
-                data={
-                    "grant_type": "password",
-                    "username": self.username.get(),
-                    "password": self.password.get()
-                }
-            )
-            if token_response.status_code == 200:
-                access_token = token_response.json().get("access_token")
-                if access_token:
-                    headers = {
-                        "Authorization": f"Bearer {access_token}",
-                        "Content-Type": "application/json"
+        max_connection_attempts = 3  # Número máximo de intentos de conexión
+        max_request_attempts = 3  # Número máximo de intentos de solicitud
+
+        connection_attempts = 0
+        while connection_attempts < max_connection_attempts:
+            try:
+                # Intentar conexión
+                token_response = requests.post(
+                    self.token_url.get(),
+                    auth=HTTPBasicAuth(self.client_id.get(), self.client_secret.get()),
+                    data={
+                        "grant_type": "password",
+                        "username": self.username.get(),
+                        "password": self.password.get()
                     }
-                    self.response = requests.post(url, json=data, headers=headers)
-                    if self.response.status_code == 200:
-                        try:
-                            self.error=False
-                            self.json_response = self.response.json()
-                            #print("Solicitud exitosa (JSON):", json_response)
-                            print("El dato se envió correctamente al WS")
-                            self.envio_exitoso += 1
-                            self.tree.tag_configure('verde', background='lightgreen')
-                            self.tree.item(self.item_id, tags=('verde',))
-                        except requests.exceptions.JSONDecodeError:
-                            try:
-                                self.error=False
-                                # Intenta analizar la respuesta como XML
-                                xml_response = ET.fromstring(self.response.text)
-                                # print("Solicitud exitosa (XML):", ET.dump(xml_response))
-                                print("La imagen se envió correctamente al WS")
-                            except ET.ParseError:
-                                messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", self.response.text)
-                    else:
-                        print("Error en la solicitud:", self.response.text)
-                        # Mover el archivo a la carpeta de errores
+                )
+
+                if token_response.status_code == 200:
+                    access_token = token_response.json().get("access_token")
+                    if access_token:
+                        headers = {
+                            "Authorization": f"Bearer {access_token}",
+                            "Content-Type": "application/json"
+                        }
+
+                        request_attempts = 0
+                        while request_attempts < max_request_attempts:
+                            # Intentar enviar la solicitud de datos
+                            self.response = requests.post(url, json=data, headers=headers)
+                            if self.response.status_code == 200:
+                                try:
+                                    self.error = False
+                                    self.json_response = self.response.json()
+                                    self.envio_exitoso += 1
+                                    self.tree.tag_configure('verde', background='lightgreen')
+                                    self.tree.item(self.item_id, tags=('verde',))
+                                    return  # Salir del método si la solicitud es exitosa
+                                except requests.exceptions.JSONDecodeError:
+                                    try:
+                                        self.error=False
+                                        # Intenta analizar la respuesta como XML
+                                        xml_response = ET.fromstring(self.response.text)
+                                        return  # Salir del método si la solicitud es exitosa
+                                    except ET.ParseError:
+                                        messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", self.response.text)
+                            time.sleep(1)  # Esperar 1 segundo antes de reintentar
+                            request_attempts += 1
+
+                        # Si se agotaron los intentos de solicitud, mover el archivo a la carpeta de errores
                         if es_imagen:
                             self.mover_a_carpeta_errores(archivo, es_imagen=True)
-                        else: 
+                        else:
                             self.mover_a_carpeta_errores(archivo, es_imagen=False)
-                            self.envio_fallido += 1
-                            self.tree.tag_configure('rojo', background='#FA5656')
-                            self.tree.item(self.item_id, tags=('rojo',))
-                    # Incrementar el contador de envíos exitosos
-                else:
-                    self.error=True
-                    messagebox.showerror(f"No se pudo obtener el token de acceso")
-                    # Mover el archivo a la carpeta de errores
-                    if es_imagen:
-                        self.mover_a_carpeta_errores(archivo, es_imagen=True)
-                    else: 
-                        self.mover_a_carpeta_errores(archivo, es_imagen=False)
                         self.envio_fallido += 1
                         self.tree.tag_configure('rojo', background='#FA5656')
                         self.tree.item(self.item_id, tags=('rojo',))
-            else:
-                self.error=True
-                messagebox.showerror(f"Error al obtener el token de acceso:", token_response.text)
-                # Mover el archivo a la carpeta de errores
-                if es_imagen:
-                    self.mover_a_carpeta_errores(archivo, es_imagen=True)
+                        self.update_contadores()
+                        return  # Salir del bucle de conexión si la solicitud falló
+                    else:
+                        # Si no se pudo obtener el token de acceso, mover el archivo a la carpeta de errores
+                        if es_imagen:
+                            self.mover_a_carpeta_errores(archivo, es_imagen=True)
+                        else:
+                            self.mover_a_carpeta_errores(archivo, es_imagen=False)
+                        self.envio_fallido += 1
+                        self.tree.tag_configure('rojo', background='#FA5656')
+                        self.tree.item(self.item_id, tags=('rojo',))
+                        self.update_contadores()
+                        break  # Salir del bucle de conexión si la solicitud falló
                 else:
+                    # Si no se pudo obtener el token de acceso, mover el archivo a la carpeta de errores
+                    if es_imagen:
+                        self.mover_a_carpeta_errores(archivo, es_imagen=True)
+                    else:
+                        self.mover_a_carpeta_errores(archivo, es_imagen=False)
                     self.envio_fallido += 1
                     self.tree.tag_configure('rojo', background='#FA5656')
                     self.tree.item(self.item_id, tags=('rojo',))
-                    self.mover_a_carpeta_errores(archivo, es_imagen=False)
-                
-        except ConnectionError:
-            self.tree.tag_configure('rojo', background='#FA5656')
-            self.tree.item(self.item_id, tags=('rojo',))
-            self.error=True
-            messagebox.showerror("Error de conexión", "No se pudo establecer conexión con el servidor.")
-            # Mover el archivo a la carpeta de errores
-            if es_imagen:
-                self.mover_a_carpeta_errores(archivo, es_imagen=True)
-            else: 
-                self.mover_a_carpeta_errores(archivo, es_imagen=False)
+                    self.update_contadores()
+                    break  # Salir del bucle de conexión si la solicitud falló
+            except ConnectionError:
+                # Si falla la conexión, intentar nuevamente después de un breve retraso
+                time.sleep(1)
+                connection_attempts += 1
+
+        # Si se agotaron los intentos de conexión, mostrar un mensaje de error y mover el archivo a la carpeta de errores
+        self.tree.tag_configure('rojo', background='#FA5656')
+        self.tree.item(self.item_id, tags=('rojo',))
+        self.update_contadores()
+        self.error = True
+        messagebox.showerror("Error de conexión", "No se pudo establecer conexión con el servidor.")
+        if es_imagen:
+            self.mover_a_carpeta_errores(archivo, es_imagen=True)
+        else:
+            self.mover_a_carpeta_errores(archivo, es_imagen=False)
+
     #Metodo para verificar si hay internet
     def verificar_conexion(self):
         try:
@@ -545,7 +561,7 @@ class ProcesadorArchivos:
                 if len(datos) != 10:
                     raise ValueError("La estructura del archivo no es válida")
 
-                SKU, Packtype, Tipodepaquete, Cantidad, CantidadInner, Largo, Ancho, Alto, Peso, Descripcion = datos
+                self.SKU, Packtype, Tipodepaquete, Cantidad, CantidadInner, Largo, Ancho, Alto, Peso, Descripcion = datos
 
                 # Convertir los valores a números (Largo, Ancho, Alto y Peso)
                 Largo = float(Largo)
@@ -555,17 +571,18 @@ class ProcesadorArchivos:
                 Cantidad = int(Cantidad)
                 CantidadInner = int(CantidadInner)
                 fecha = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-                packkey = f"{SKU}_{Cantidad}"
                 if Cantidad == 0:
                     Cantidad=1
                 else: Cantidad=Cantidad
                 
+                packkey = f"{self.SKU}_{Cantidad}"
+
                 if CantidadInner == 0:
                     CantidadInner=1
                 else: CantidadInner=CantidadInner
                 
                 if CantidadInner>Cantidad:
-                    raise ValueError(f'La cantidad de inner ({CantidadInner}) del articulo {SKU} es mayor a la cantidad de cajas ({Cantidad})')
+                    raise ValueError(f'La cantidad de inner ({CantidadInner}) del articulo {self.SKU} es mayor a la cantidad de cajas ({Cantidad})')
 
                 if Packtype == "Unidad-UOM3":
                     data = {
@@ -585,7 +602,7 @@ class ProcesadorArchivos:
                         "weightuom1": Peso,
                         "pallethi": 1,
                         "palletti": 1,
-                        "ext_udf_str1": SKU,
+                        "ext_udf_str1": self.SKU,
                         "ext_udf_str2": Tipodepaquete
                     }
                     #print(data)
@@ -606,7 +623,7 @@ class ProcesadorArchivos:
                         "weightuom1": Peso,
                         "pallethi": 1,
                         "palletti": 1,
-                        "ext_udf_str1": SKU,
+                        "ext_udf_str1": self.SKU,
                         "ext_udf_str2": Tipodepaquete
                     }
                     #print(data)
@@ -627,7 +644,7 @@ class ProcesadorArchivos:
                         "weightuom2": Peso,
                         "pallethi": 1,
                         "palletti": 1,
-                        "ext_udf_str1": SKU,
+                        "ext_udf_str1": self.SKU,
                         "ext_udf_str2": Tipodepaquete
                     }
                     #print(data)
@@ -684,59 +701,78 @@ class ProcesadorArchivos:
             with open(ruta_imagen, "rb") as img_file:
                 # Leer la imagen en bytes
                 img_bytes = img_file.read()
-                SKU= os.path.basename(ruta_imagen).split('_')[0]
-                Propietario = os.path.basename(ruta_imagen).split('_')[2]
+                            
+                img_pil = Image.open(io.BytesIO(img_bytes))
+
+                # Redimensiona la imagen
+                nuevo_ancho = 200  # Ancho deseado
+                nueva_altura = 130  # Altura deseada
+                img_pil = img_pil.resize((nuevo_ancho, nueva_altura), Image.LANCZOS)
+
+                # Convierte la imagen a un objeto PhotoImage
+                img_tk = ImageTk.PhotoImage(img_pil)
+
+                # Asigna la imagen al widget Label en la interfaz
+                self.label_imagen = ttk.Label(self.medicion_tab, image=img_tk, background=self.colorbackground)
+                self.label_imagen.grid(row=0, column=19, rowspan=2, columnspan=2, padx=(0,0), sticky="w")
+
+                # Asegúrate de mantener una referencia al objeto PhotoImage
+                # para evitar que el recolector de basura de Python lo elimine
+                self.label_imagen.image = img_tk
                 
-                if Propietario=="Mavesa":
-                    cod_propietario="0001"
-                elif Propietario=="Internaconsa":
-                    cod_propietario="0005"
-                else:
-                    cod_propietario="0002"
-                    
-                # Codificar la imagen en base64
-                img_base64 = base64.b64encode(img_bytes).decode('utf-8')
-                # Construir el JSON de la imagen
-                json_imagen = {
-                    "item": {
-                        "attrs": {
-                            "attr": [
-                                {"name": "storer", "value": cod_propietario},
-                                {"name": "sku", "value": os.path.basename(ruta_imagen).split('_')[0]},  # Obtener el "CODIGO" del nombre de la imagen
-                                {"name": "uom", "value": os.path.basename(ruta_imagen).split('_')[1].split('.')[0]}  # Obtener el "UN" del nombre de la imagen
-                            ]
-                        },
-                        "resrs": {
-                            "res": [
-                                {
-                                    "filename": os.path.basename(ruta_imagen),
-                                    "base64": img_base64
-                                }
-                            ]
-                        },
-                        "acl": {
-                            "name": "Public"
-                        },
-                        "entityName": "SCE_Product_Image"
-                    }
+            SKU= os.path.basename(ruta_imagen).split('_')[0]
+            Propietario = os.path.basename(ruta_imagen).split('_')[2]
+        
+            if Propietario=="Mavesa":
+                cod_propietario="0001"
+            elif Propietario=="Internaconsa":
+                cod_propietario="0005"
+            else:
+                cod_propietario="0002"
+                
+            # Codificar la imagen en base64
+            img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+            # Construir el JSON de la imagen
+            json_imagen = {
+                "item": {
+                    "attrs": {
+                        "attr": [
+                            {"name": "storer", "value": cod_propietario},
+                            {"name": "sku", "value": os.path.basename(ruta_imagen).split('_')[0]},  # Obtener el "CODIGO" del nombre de la imagen
+                            {"name": "uom", "value": os.path.basename(ruta_imagen).split('_')[1].split('.')[0]}  # Obtener el "UN" del nombre de la imagen
+                        ]
+                    },
+                    "resrs": {
+                        "res": [
+                            {
+                                "filename": os.path.basename(ruta_imagen),
+                                "base64": img_base64
+                            }
+                        ]
+                    },
+                    "acl": {
+                        "name": "Public"
+                    },
+                    "entityName": "SCE_Product_Image"
                 }
-                # Enviar el JSON al servicio de imágenes
-                #if not self.error:
-                img_file.close()
-                self.enviar_data(json_imagen, self.url_api_image.get(), ruta_imagen, es_imagen=True)
-                self.actualizar_log(SKU, es_imagen=True)
-                
-                carpeta_procesados_img = os.path.join(self.carpeta_procesados_img)
-                if not os.path.exists(carpeta_procesados_img):
-                    os.makedirs(carpeta_procesados_img)
-                
-                nuevo_nombre = os.path.join(carpeta_procesados_img, os.path.basename(ruta_imagen))
-                # Cerrar el archivo antes de intentar moverlo
-                try: 
-                    os.rename(ruta_imagen, nuevo_nombre)
-                except: pass
-                    #print("Ya se ha movido el archivo")
-                #print(f"Imagen procesada: {ruta_imagen}")
+            }
+            # Enviar el JSON al servicio de imágenes
+            #if not self.error:
+            img_file.close()
+            self.enviar_data(json_imagen, self.url_api_image.get(), ruta_imagen, es_imagen=True)
+            self.actualizar_log(SKU, es_imagen=True)
+            
+            carpeta_procesados_img = os.path.join(self.carpeta_procesados_img)
+            if not os.path.exists(carpeta_procesados_img):
+                os.makedirs(carpeta_procesados_img)
+            
+            nuevo_nombre = os.path.join(carpeta_procesados_img, os.path.basename(ruta_imagen))
+            # Cerrar el archivo antes de intentar moverlo
+            try: 
+                os.rename(ruta_imagen, nuevo_nombre)
+            except: pass
+                #print("Ya se ha movido el archivo")
+            #print(f"Imagen procesada: {ruta_imagen}")
 
         except Exception as e:
             messagebox.showerror("Error", f"Error al procesar la imagen:", f"Error: {str(e)}")
@@ -749,6 +785,7 @@ class ProcesadorArchivos:
             return None
         try:
             for archivo in archivos:
+
                 if extension == ".jpg" and es_imagen:
                     datetime.strptime(archivo.split("_")[3].replace('.jpg', ''), "%Y%m%d%H%M%S")
                 elif extension == ".txt" and not es_imagen:
@@ -793,7 +830,6 @@ class ProcesadorArchivos:
                 archivo_txt = self.obtener_archivo_mas_antiguo(self.carpeta_archivos.get(), ".txt", es_imagen=False)
                 archivo_img = self.obtener_archivo_mas_antiguo(self.carpeta_imagenes.get(), ".jpg", es_imagen=True)  # Ajustar la extensión
             
-
                 if archivo_txt:
                     self.error=True
                     self.procesar_archivo(archivo_txt)

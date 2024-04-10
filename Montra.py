@@ -17,6 +17,8 @@ from pathlib import Path
 import configparser
 import customtkinter
 from PIL import Image, ImageTk
+import io  # Agregar esta línea para importar io
+
 
 clave_cifrado= b'5eWYhZWF9OBQqiI6k2urPzWBAdj0WZ5lz-m-xGn2mJ4=' #Esta es la clave que utiliza el archivo .ini para encriptarlo y desencriptarlo
 fernet = Fernet(clave_cifrado)
@@ -140,8 +142,12 @@ class ProcesadorArchivos:
             self.notebook.select(self.configuracion_tab)
             self.dialogo_contraseña = tk.Toplevel()
             self.dialogo_contraseña.title("Acceso")
-            self.dialogo_contraseña.geometry("300x120")
+            position_x = int(self.root.winfo_x() + (self.root.winfo_width() / 2) - (300 / 2))
+            position_y = int(self.root.winfo_y() + (self.root.winfo_height() / 2) - (120 / 2))
+            self.dialogo_contraseña.geometry(f"{300}x{120}+{position_x}+{position_y}")
             self.dialogo_contraseña.resizable(False, False)
+            self.dialogo_contraseña.attributes("-topmost", True)  # Mantener la ventana siempre visible
+
             
             etiqueta_contraseña = ttk.Label(self.dialogo_contraseña, text="Ingrese la contraseña:")
             etiqueta_contraseña.pack(pady=5)
@@ -202,6 +208,12 @@ class ProcesadorArchivos:
         # Ventana emergente para cambiar la contraseña
         cambio_contraseña_window = tk.Toplevel(self.root)
         cambio_contraseña_window.title("Cambiar Contraseña")
+        position_x = int(self.root.winfo_x() + (self.root.winfo_width() / 2) - (300 / 2))
+        position_y = int(self.root.winfo_y() + (self.root.winfo_height() / 2) - (120 / 2))
+        cambio_contraseña_window.geometry(f"{350}x{120}+{position_x}+{position_y}")
+        cambio_contraseña_window.attributes("-topmost", True)  # Mantener la ventana siempre visible
+
+
 
         ttk.Label(cambio_contraseña_window, text="Contraseña Actual:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
         contraseña_actual_entry = ttk.Entry(cambio_contraseña_window, show="*")
@@ -236,7 +248,7 @@ class ProcesadorArchivos:
         self.notebook.add(self.medicion_tab, text="WebService", state="normal")
 
         # Insertarla en una etiqueta.
-        self.colorbackground= "lightgrey"
+        self.colorbackground= "#ECECEC"
         self.background = ttk.Label(self.medicion_tab, background=self.colorbackground)
         self.background.grid(row=0, column=0, columnspan=21, rowspan=2, pady=(0,0), sticky="snew")
 
@@ -247,13 +259,13 @@ class ProcesadorArchivos:
         self.label_imagen3.grid(row=1, column=0, columnspan=2, padx=(30,0), pady=(0,10))
 
         self.label_imagen2 = ttk.Label(self.medicion_tab, image=self.logo_mavesa, background=self.colorbackground)
-        self.label_imagen2.grid(row=0, column=19, rowspan=2, columnspan=2, padx=(0,0), sticky="w")
+        self.label_imagen2.grid(row=0, column=19, rowspan=3, columnspan=2, padx=(0,0), sticky="w")
         
 
-        self.boton_iniciar = customtkinter.CTkButton(self.medicion_tab, text="Iniciar", border_color="#AFACAC", border_width=1,   corner_radius=1,font=("Helvetica", 16), text_color="#000000", fg_color="#FFFFFF", hover_color="#D9F3FF", text_color_disabled="#000000", width=120, height=45, compound="left", command=self.iniciar_proceso)
+        self.boton_iniciar = customtkinter.CTkButton(self.medicion_tab, text="Iniciar", border_color="#AFACAC", border_width=2, corner_radius=8 ,font=("Helvetica", 16), text_color="#000000", fg_color="#FFFFFF", hover_color="#D9F3FF", text_color_disabled="#000000", width=120, height=45, compound="left", command=self.iniciar_proceso)
         self.boton_iniciar.grid(row=0, column=2, columnspan=3, padx=(75,55),  pady=5, stick="w")
         
-        self.boton_detener = customtkinter.CTkButton(self.medicion_tab, text="Detener", border_color="#AFACAC", border_width=1,   corner_radius=1,font=("Helvetica", 16), text_color="#000000", fg_color="#FFFFFF", hover_color="#D9F3FF", text_color_disabled="#000000",width=120, height=45, compound="left", command=self.detener_proceso)
+        self.boton_detener = customtkinter.CTkButton(self.medicion_tab, text="Detener", border_color="#AFACAC", border_width=2, corner_radius=8,font=("Helvetica", 16), text_color="#000000", fg_color="#FFFFFF", hover_color="#D9F3FF", text_color_disabled="#000000",width=120, height=45, compound="left", command=self.detener_proceso)
         self.boton_detener.grid(row=1, column=2, columnspan=2, sticky="e", padx=(75,55), pady=(0,10))
 
 
@@ -266,14 +278,14 @@ class ProcesadorArchivos:
         boton_configuraciones.grid(row=8, column=20, sticky="ne")
 
         # Crear la tabla para mostrar los datos
-        columns = ('SKU', 'PackType' ,'UOM' , 'Cajas', 'Inner', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha')
+        columns = ('SKU', 'PackType' ,'UOM' , 'Cajas', 'Inner', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha', 'Y/N')
         self.tree = ttk.Treeview(self.medicion_tab, columns=columns, show='headings')
 
         for col in columns:
             self.tree.heading(col, text=col)
-            self.tree.column('SKU', width=150)
-            self.tree.column('PackType', width=80)
-            self.tree.column('UOM', width=50)
+            self.tree.column('SKU', width=130)
+            self.tree.column('PackType', width=90)
+            self.tree.column('UOM', width=35)
             self.tree.column('Cajas', width=40)
             self.tree.column('Inner', width=40)
             self.tree.column('Largo', width=50)
@@ -281,8 +293,13 @@ class ProcesadorArchivos:
             self.tree.column('Alto', width=50)
             self.tree.column('Peso', width=50)
             self.tree.column('Fecha', width=130)
+            self.tree.column('Y/N', width=30)
+
 
         self.tree.grid(row=3, column=0, columnspan=20, pady=(10,5), padx=(10,10))
+        
+        # Lista para guardar las referencias de los elementos insertados en la tabla
+        self.rows = []
         
         # Aplicar un estilo con bordes a la tabla
         style = ttk.Style()
@@ -304,7 +321,7 @@ class ProcesadorArchivos:
         self.label_envio_exitoso.grid(row=8, column=0, columnspan=2, padx=(120,0), pady=(0,10))
 
         self.label_envio_fallido = ttk.Label(self.medicion_tab, text="Envíos fallidos: 0", foreground="red")
-        self.label_envio_fallido.grid(row=8, column=19, rowspan=2, columnspan=2, padx=(0,0), sticky="w")
+        self.label_envio_fallido.grid(row=8, column=19, rowspan=2, columnspan=2, padx=(0,0), pady=(0,10), sticky="w")
 
     #Creación de ventana de configuración
     def create_configuracion_tab(self):
@@ -452,64 +469,92 @@ class ProcesadorArchivos:
                                     self.envio_exitoso += 1
                                     self.tree.tag_configure('verde', background='lightgreen')
                                     self.tree.item(self.item_id, tags=('verde',))
+                                    print(self.rows)
+                                    if self.rows:  # Verificar si hay elementos en la tabla
+                                        self.item_id = self.rows[-1]  # Obtener la referencia del último elemento insertado
+                                        self.tree.set(self.item_id, 'Y/N', 'Y')  # Actualizar la columna 'Y/N' para el último elemento
+                                        self.enviado="Y"
                                     return  # Salir del método si la solicitud es exitosa
                                 except requests.exceptions.JSONDecodeError:
                                     try:
                                         self.error=False
+
                                         # Intenta analizar la respuesta como XML
                                         xml_response = ET.fromstring(self.response.text)
+                                        self.style.configure("MyFrame.TFrame", background="blue")
                                         return  # Salir del método si la solicitud es exitosa
                                     except ET.ParseError:
-                                        messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", response.text)
+                                        messagebox.showerror("La respuesta no es ni JSON ni XML válido. Contenido de la respuesta:", self.response.text)
                             time.sleep(1)  # Esperar 1 segundo antes de reintentar
                             request_attempts += 1
 
                         # Si se agotaron los intentos de solicitud, mover el archivo a la carpeta de errores
                         if es_imagen:
                             self.mover_a_carpeta_errores(archivo, es_imagen=True)
+                            self.style.configure("MyFrame.TFrame", background="#EF3F3F")
+
                         else:
                             self.mover_a_carpeta_errores(archivo, es_imagen=False)
-                        self.envio_fallido += 1
-                        self.tree.tag_configure('rojo', background='#FA5656')
-                        self.tree.item(self.item_id, tags=('rojo',))
-                        self.update_contadores()
+                            self.envio_fallido += 1
+                            self.tree.tag_configure('rojo', background='#FA5656')
+                            self.tree.item(self.item_id, tags=('rojo',))
+                            self.update_contadores()
+                            if self.rows:  # Verificar si hay elementos en la tabla
+                                self.item_id = self.rows[-1]  # Obtener la referencia del último elemento insertado
+                                self.tree.set(self.item_id, 'Y/N', 'N')  # Actualizar la columna 'Y/N' para el último elemento
+                                self.enviado="N"
                         return  # Salir del bucle de conexión si la solicitud falló
                     else:
                         # Si no se pudo obtener el token de acceso, mover el archivo a la carpeta de errores
                         if es_imagen:
                             self.mover_a_carpeta_errores(archivo, es_imagen=True)
+                            self.style.configure("MyFrame.TFrame", background="#EF3F3F")
                         else:
                             self.mover_a_carpeta_errores(archivo, es_imagen=False)
-                        self.envio_fallido += 1
-                        self.tree.tag_configure('rojo', background='#FA5656')
-                        self.tree.item(self.item_id, tags=('rojo',))
-                        self.update_contadores()
+                            self.envio_fallido += 1
+                            self.tree.tag_configure('rojo', background='#FA5656')
+                            self.tree.item(self.item_id, tags=('rojo',))
+                            self.update_contadores()
+                            if self.rows:  # Verificar si hay elementos en la tabla
+                                self.item_id = self.rows[-1]  # Obtener la referencia del último elemento insertado
+                                self.tree.set(self.item_id, 'Y/N', 'N')  # Actualizar la columna 'Y/N' para el último elemento
+                                self.enviado="N"
                         break  # Salir del bucle de conexión si la solicitud falló
                 else:
                     # Si no se pudo obtener el token de acceso, mover el archivo a la carpeta de errores
                     if es_imagen:
                         self.mover_a_carpeta_errores(archivo, es_imagen=True)
+                        self.style.configure("MyFrame.TFrame", background="#EF3F3F")
                     else:
                         self.mover_a_carpeta_errores(archivo, es_imagen=False)
-                    self.envio_fallido += 1
-                    self.tree.tag_configure('rojo', background='#FA5656')
-                    self.tree.item(self.item_id, tags=('rojo',))
-                    self.update_contadores()
+                        self.envio_fallido += 1
+                        self.tree.tag_configure('rojo', background='#FA5656')
+                        self.tree.item(self.item_id, tags=('rojo',))
+                        self.update_contadores()
+                        if self.rows:  # Verificar si hay elementos en la tabla
+                            self.item_id = self.rows[-1]  # Obtener la referencia del último elemento insertado
+                            self.tree.set(self.item_id, 'Y/N', 'N')  # Actualizar la columna 'Y/N' para el último elemento
+                            self.enviado="N"
                     break  # Salir del bucle de conexión si la solicitud falló
             except ConnectionError:
                 # Si falla la conexión, intentar nuevamente después de un breve retraso
                 time.sleep(1)
                 connection_attempts += 1
 
-        # Si se agotaron los intentos de conexión, mostrar un mensaje de error y mover el archivo a la carpeta de errores
-        self.tree.tag_configure('rojo', background='#FA5656')
-        self.tree.item(self.item_id, tags=('rojo',))
-        self.update_contadores()
-        self.error = True
         messagebox.showerror("Error de conexión", "No se pudo establecer conexión con el servidor.")
         if es_imagen:
             self.mover_a_carpeta_errores(archivo, es_imagen=True)
+            self.style.configure("MyFrame.TFrame", background="#EF3F3F")
         else:
+            # Si se agotaron los intentos de conexión, mostrar un mensaje de error y mover el archivo a la carpeta de errores
+            self.tree.tag_configure('rojo', background='#FA5656')
+            self.tree.item(self.item_id, tags=('rojo',))
+            self.update_contadores()
+            self.error = True
+            if self.rows:  # Verificar si hay elementos en la tabla
+                self.item_id = self.rows[-1]  # Obtener la referencia del último elemento insertado
+                self.tree.set(self.item_id, 'Y/N', 'N')  # Actualizar la columna 'Y/N' para el último elemento
+                self.enviado="N"
             self.mover_a_carpeta_errores(archivo, es_imagen=False)
 
     #Metodo para verificar si hay internet
@@ -540,6 +585,7 @@ class ProcesadorArchivos:
 
         if not self.verificar_conexion():
             messagebox.showerror("Error de conexión", "No hay conexión a Internet.")
+            time.sleep(3)
             return
 
         try:
@@ -605,10 +651,12 @@ class ProcesadorArchivos:
                     }
                     #print(data)
                     f.close()
-                    self.item_id=self.tree.insert('', 'end', values=(packkey, Packtype, Tipodepaquete, Cantidad , CantidadInner,Largo, Ancho, Alto, Peso, fecha))
+                    self.item_id=self.tree.insert('', '0', values=(packkey, Packtype, Tipodepaquete, Cantidad , CantidadInner,Largo, Ancho, Alto, Peso, fecha))
+                    self.rows.append(self.item_id)  # Guardar referencia del elemento insertado
                     self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
                     self.actualizar_log(packkey, es_imagen=False)
-                    self.exportar_excel(packkey, Packtype, Tipodepaquete, Cantidad, CantidadInner, Largo, Ancho, Alto, Peso, fecha)
+                    enviado = self.enviado
+                    self.exportar_excel(packkey, Packtype, Tipodepaquete, Cantidad, CantidadInner, Largo, Ancho, Alto, Peso, fecha, enviado)
                 elif Packtype == "Caja-UOM1" or Packtype == "Caja2-UOM1" or Packtype == "Caja3-UOM1" or Packtype == "Caja4-UOM1" or Packtype == "Caja5-UOM1" :
                     data = {
                         "packkey": packkey,
@@ -626,10 +674,12 @@ class ProcesadorArchivos:
                     }
                     #print(data)
                     f.close()
-                    self.item_id=self.tree.insert('', 'end', values=(packkey, Packtype, Tipodepaquete, Cantidad , CantidadInner, Largo, Ancho, Alto, Peso, fecha))
+                    self.item_id=self.tree.insert('', '0', values=(packkey, Packtype, Tipodepaquete, Cantidad , CantidadInner, Largo, Ancho, Alto, Peso, fecha))
+                    self.rows.append(self.item_id)  # Guardar referencia del elemento insertado
                     self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
                     self.actualizar_log(packkey, es_imagen=False)
-                    self.exportar_excel(packkey, Packtype, Tipodepaquete, Cantidad,CantidadInner, Largo, Ancho, Alto, Peso, fecha)
+                    enviado = self.enviado
+                    self.exportar_excel(packkey, Packtype, Tipodepaquete, Cantidad,CantidadInner, Largo, Ancho, Alto, Peso, fecha, enviado)
                 elif Packtype == "Subcaja-UOM2":
                     data = {
                         "packkey": packkey,
@@ -647,10 +697,12 @@ class ProcesadorArchivos:
                     }
                     #print(data)
                     f.close()
-                    self.item_id=self.tree.insert('', 'end', values=(packkey, Packtype, Tipodepaquete, Cantidad , CantidadInner,Largo, Ancho, Alto, Peso, fecha))
+                    self.item_id=self.tree.insert('', '0', values=(packkey, Packtype, Tipodepaquete, Cantidad , CantidadInner,Largo, Ancho, Alto, Peso, fecha))
+                    self.rows.append(self.item_id)  # Guardar referencia del elemento insertado
                     self.enviar_data(data, self.api_url.get(), archivo, es_imagen=False)
                     self.actualizar_log(packkey, es_imagen=False)
-                    self.exportar_excel(packkey, Packtype, Tipodepaquete, Cantidad, CantidadInner, Largo, Ancho, Alto, Peso, fecha)
+                    enviado = self.enviado
+                    self.exportar_excel(packkey, Packtype, Tipodepaquete, Cantidad, CantidadInner, Largo, Ancho, Alto, Peso, fecha, enviado)
             
                 if not self.error:
                     carpeta_procesados_data = os.path.join(self.carpeta_procesados_data)
@@ -684,6 +736,13 @@ class ProcesadorArchivos:
     
     #Metodo para procesar archivo JPG
     def procesar_imagen(self, ruta_imagen):
+        
+        if not self.verificar_conexion():
+            messagebox.showerror("Error de conexión", "No hay conexión a Internet.")
+            time.sleep(3)
+            return
+
+        
         try:
             
             carpeta_procesados_img = os.path.join(self.carpeta_procesados_img)
@@ -699,59 +758,83 @@ class ProcesadorArchivos:
             with open(ruta_imagen, "rb") as img_file:
                 # Leer la imagen en bytes
                 img_bytes = img_file.read()
-                SKU= os.path.basename(ruta_imagen).split('_')[0]
-                Propietario = os.path.basename(ruta_imagen).split('_')[2]
+
+                # Configurar el estilo del contenedor Frame
+                self.style = ttk.Style()
+                self.style.configure("MyFrame.TFrame", background="#ECECEC", bordercolor="#ECECEC")
+
+                # Crear un contenedor Frame para la imagen con borde verde
+                self.image_frame = ttk.Frame(self.medicion_tab, borderwidth=5, relief="solid", style="MyFrame.TFrame")
+                self.image_frame.grid(row=0, column=19, rowspan=2, columnspan=2, padx=(0,0), sticky="w")
+
+                img_pil = Image.open(io.BytesIO(img_bytes))
                 
-                if Propietario=="Mavesa":
-                    cod_propietario="0001"
-                elif Propietario=="Internaconsa":
-                    cod_propietario="0005"
-                else:
-                    cod_propietario="0002"
-                    
-                # Codificar la imagen en base64
-                img_base64 = base64.b64encode(img_bytes).decode('utf-8')
-                # Construir el JSON de la imagen
-                json_imagen = {
-                    "item": {
-                        "attrs": {
-                            "attr": [
-                                {"name": "storer", "value": cod_propietario},
-                                {"name": "sku", "value": os.path.basename(ruta_imagen).split('_')[0]},  # Obtener el "CODIGO" del nombre de la imagen
-                                {"name": "uom", "value": os.path.basename(ruta_imagen).split('_')[1].split('.')[0]}  # Obtener el "UN" del nombre de la imagen
-                            ]
-                        },
-                        "resrs": {
-                            "res": [
-                                {
-                                    "filename": os.path.basename(ruta_imagen),
-                                    "base64": img_base64
-                                }
-                            ]
-                        },
-                        "acl": {
-                            "name": "Public"
-                        },
-                        "entityName": "SCE_Product_Image"
-                    }
+                # Redimensiona la imagen
+                img_pil = img_pil.resize((180, 110), Image.LANCZOS)
+                self.img_tk = ImageTk.PhotoImage(img_pil)
+                
+                # Asignar la imagen al widget Label en la interfaz con el estilo definido
+                self.label_imagen = ttk.Label(self.image_frame,image=self.img_tk)
+                self.label_imagen.grid(row=0, column=19, rowspan=2, columnspan=2, padx=(0,0), sticky="w")
+                
+
+                
+                # para evitar que el recolector de basura de Python lo elimine
+                self.label_imagen.image = self.img_tk
+                
+            SKU= os.path.basename(ruta_imagen).split('_')[0]
+            Propietario = os.path.basename(ruta_imagen).split('_')[2]
+        
+            if Propietario=="Mavesa":
+                cod_propietario="0001"
+            elif Propietario=="Internaconsa":
+                cod_propietario="0005"
+            else:
+                cod_propietario="0002"
+                
+            # Codificar la imagen en base64
+            img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+            # Construir el JSON de la imagen
+            json_imagen = {
+                "item": {
+                    "attrs": {
+                        "attr": [
+                            {"name": "storer", "value": cod_propietario},
+                            {"name": "sku", "value": os.path.basename(ruta_imagen).split('_')[0]},  # Obtener el "CODIGO" del nombre de la imagen
+                            {"name": "uom", "value": os.path.basename(ruta_imagen).split('_')[1].split('.')[0]}  # Obtener el "UN" del nombre de la imagen
+                        ]
+                    },
+                    "resrs": {
+                        "res": [
+                            {
+                                "filename": os.path.basename(ruta_imagen),
+                                "base64": img_base64
+                            }
+                        ]
+                    },
+                    "acl": {
+                        "name": "Public"
+                    },
+                    "entityName": "SCE_Product_Image"
                 }
-                # Enviar el JSON al servicio de imágenes
-                #if not self.error:
-                img_file.close()
-                self.enviar_data(json_imagen, self.url_api_image.get(), ruta_imagen, es_imagen=True)
-                self.actualizar_log(SKU, es_imagen=True)
-                
-                carpeta_procesados_img = os.path.join(self.carpeta_procesados_img)
-                if not os.path.exists(carpeta_procesados_img):
-                    os.makedirs(carpeta_procesados_img)
-                
-                nuevo_nombre = os.path.join(carpeta_procesados_img, os.path.basename(ruta_imagen))
-                # Cerrar el archivo antes de intentar moverlo
-                try: 
-                    os.rename(ruta_imagen, nuevo_nombre)
-                except: pass
-                    #print("Ya se ha movido el archivo")
-                #print(f"Imagen procesada: {ruta_imagen}")
+            }
+            # Enviar el JSON al servicio de imágenes
+            #if not self.error:
+            img_file.close()
+            self.enviar_data(json_imagen, self.url_api_image.get(), ruta_imagen, es_imagen=True)
+            self.actualizar_log(SKU, es_imagen=True)
+            
+            carpeta_procesados_img = os.path.join(self.carpeta_procesados_img)
+            if not os.path.exists(carpeta_procesados_img):
+                os.makedirs(carpeta_procesados_img)
+            
+            nuevo_nombre = os.path.join(carpeta_procesados_img, os.path.basename(ruta_imagen))
+            # Cerrar el archivo antes de intentar moverlo
+            try: 
+                os.rename(ruta_imagen, nuevo_nombre)
+            except: pass
+                #print("Ya se ha movido el archivo")
+            #print(f"Imagen procesada: {ruta_imagen}")
 
         except Exception as e:
             messagebox.showerror("Error", f"Error al procesar la imagen:", f"Error: {str(e)}")
@@ -805,10 +888,10 @@ class ProcesadorArchivos:
     #Metodo para que contantemente esté tomando archivos si los hay
     def procesar_archivos_continuamente(self):
         while self.ejecutar:
-            try: 
+            try:
                 archivo_txt = self.obtener_archivo_mas_antiguo(self.carpeta_archivos.get(), ".txt", es_imagen=False)
                 archivo_img = self.obtener_archivo_mas_antiguo(self.carpeta_imagenes.get(), ".jpg", es_imagen=True)  # Ajustar la extensión
-            
+                
 
                 if archivo_txt:
                     self.error=True
@@ -848,16 +931,16 @@ class ProcesadorArchivos:
             self.response_entry.insert(tk.END, f"{fecha}  packkey={SKU}, Respuesta WS:  La imagen fue enviada exitosamente\n", 'image')
             self.response_entry.config(state=tk.DISABLED)  # Deshabilita la edición temporalmente 
         self.response_entry.see(tk.END)  # Desplaza la vista al final del texto
-        self.tree.yview_moveto(1.0)  # Desplaza la vista hacia el final de la tabla
+        #self.tree.yview_moveto(1.0)  # Desplaza la vista hacia el final de la tabla
 
     #Exportar el excel con los datos medidos
-    def exportar_excel(self, SKU, Packtype, Tipodepaquete, Cantidad, CantidadInner, Largo, Ancho, Alto, Peso, fecha):
+    def exportar_excel(self, SKU, Packtype, Tipodepaquete, Cantidad, CantidadInner, Largo, Ancho, Alto, Peso, fecha, enviado):
         self.ruta_exportacion = ""
         fecha_actual = datetime.now().strftime("%d-%m-%Y")
 
         # Configurar la carpeta de destino predeterminada
         default_folder = "Export"
-
+        print(enviado)
         # Usar la carpeta predeterminada si self.ruta_exportacion está vacía
         if not self.ruta_exportacion or not Path(self.ruta_exportacion).exists() or not Path(self.ruta_exportacion).is_dir():
             self.ruta_destino = Path(default_folder)
@@ -879,12 +962,12 @@ class ProcesadorArchivos:
             worksheet = workbook.active
             worksheet.title = "Medidas"
             # Encabezados
-            encabezados = ["SKU", "Packtype", "Tipodepaquete", "Cajas", "Inner","Largo", "Ancho", "Alto", "Peso", "Fecha"]
+            encabezados = ["SKU", "Packtype", "Tipodepaquete", "Cajas", "Inner","Largo", "Ancho", "Alto", "Peso", "Fecha", "Enviado"]
             for col_num, encabezado in enumerate(encabezados, 1):
                 worksheet.cell(row=1, column=col_num, value=encabezado)
 
         # Agregar nueva fila
-        nueva_fila = [SKU, Packtype, Tipodepaquete, Cantidad, CantidadInner,  Largo, Ancho, Alto, Peso, fecha]
+        nueva_fila = [SKU, Packtype, Tipodepaquete, Cantidad, CantidadInner,  Largo, Ancho, Alto, Peso, fecha, enviado]
         worksheet.append(nueva_fila)
 
         # Guardar el archivo Excel
@@ -929,10 +1012,16 @@ class ProcesadorArchivos:
     def detener_proceso(self):
         try:
             self.boton_iniciar.configure(state="normal", fg_color="#FFFFFF")
-            self.boton_detener.configure(state="disabled", fg_color="#FC0909")
+            self.boton_detener.configure(state="disabled", fg_color="#FC0909", text_color_disabled="#FFFFFF")
             # Detiene el hilo de procesamiento
             self.ejecutar = False
             #messagebox.showinfo("Proceso detenido", "El proceso ha sido detenido exitosamente.")
+            try:
+                self.label_imagen.destroy()
+                self.image_frame.destroy()
+            except: pass
+
+            
         except Exception as e:
             messagebox.showerror("Error al detener el proceso", f"Error: {str(e)}")
 
@@ -946,4 +1035,5 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.resizable(False,False)
     app = ProcesadorArchivos(root)
+    root.attributes("-topmost", True)
     app.ejecutar_interfaz()
